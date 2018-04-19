@@ -1,0 +1,5 @@
+include kospacing/resources/dicts/*
+include kospacing/resources/models/* 
+include kospacing/embedding_maker.py
+include kospacing/kospacing.py
+
