@@ -3,7 +3,7 @@ PyKoSpacing
 
 Python package for automatic Korean word spacing.
 
-R verson can be found [here](https://github.com/haven-jeon/PyKoSpacing).
+R verson can be found [here](https://github.com/haven-jeon/KoSpacing).
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
 
@@ -30,7 +30,10 @@ Word spacing is one of the important parts of the preprocessing of Korean text a
 
 To install from GitHub, use
 
-    pip install git+git://github.com/haven-jeon/PyKoSpacing.git
+    pip install tensorflow
+    pip install keras
+    pip install h5py
+    pip install git+https://github.com/haven-jeon/PyKoSpacing.git
 
 
 #### Example 

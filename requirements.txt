@@ -1,0 +1,3 @@
+tensorflow == 1.4.*
+keras == 2.1.*
+h5py == 2.7.*
