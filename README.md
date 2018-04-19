@@ -30,9 +30,6 @@ Word spacing is one of the important parts of the preprocessing of Korean text a
 
 To install from GitHub, use
 
-    pip install tensorflow
-    pip install keras
-    pip install h5py
     pip install git+https://github.com/haven-jeon/PyKoSpacing.git
 
 
