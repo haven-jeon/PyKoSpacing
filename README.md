@@ -20,7 +20,7 @@ For example.
 1. "아버지가 방에 들어가신다." means  "My father enters the room."
 1. "아버지 가방에 들어가신다." means  "My father goes into the bag."
 
-Common sense, the second is the right answer.
+Common sense, the first is the right answer.
 
 `PyKoSpacing` is based on Deep Learning model trained from large corpus(more than 100 million NEWS articles from [Chan-Yub Park](https://github.com/mrchypark)). 
 
