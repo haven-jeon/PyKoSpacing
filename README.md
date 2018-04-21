@@ -10,7 +10,17 @@ R verson can be found [here](https://github.com/haven-jeon/KoSpacing).
 
 #### Introduction
 
-Word spacing is one of the important parts of the preprocessing of Korean text analysis. Accurate spacing greatly affects the accuracy of subsequent text analysis. `PyKoSpacing` has fairly accurate automatic word spacing performance, especially good for online text originated from SNS.
+Word spacing is one of the important parts of the preprocessing of Korean text analysis. Accurate spacing greatly affects the accuracy of subsequent text analysis. `PyKoSpacing` has fairly accurate automatic word spacing performance,especially good for online text originated from SNS or SMS.
+
+For example.
+
+"아버지가방에들어가신다." can be spaced both of below.
+
+
+1. "아버지가 방에 들어가신다." means  "My father enters the room."
+1. "아버지 가방에 들어가신다." means  "My father goes into the bag."
+
+Common sense, the second is the right answer.
 
 `PyKoSpacing` is based on Deep Learning model trained from large corpus(more than 100 million NEWS articles from [Chan-Yub Park](https://github.com/mrchypark)). 
 
