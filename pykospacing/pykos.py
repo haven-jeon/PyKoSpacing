@@ -21,7 +21,14 @@ def main(args=sys.argv[1:]):
     args = get_parser().parse_args(args)
 
     source = args.infile.read()
-    result = '\n'.join([spacing(_) for _ in source.splitlines()])
+    
+    limit = 198
+    result = '\n'
+    for line in source.splitlines():
+        while len(line) > limit:
+            result += spacing(line[0:limit])
+            line = line[limit:]
+        result += '\n'
 
     if args.overwrite:
         args.infile.close()
