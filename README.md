@@ -38,6 +38,24 @@ Common sense, the first is the right answer.
 
 #### Install
 
+Pre-requisite:
+```
+  proper installation of python3
+  proper installation of pip
+
+  pip install tensorflow
+  pip install keras
+
+
+  Windows-Ubuntu case: On following error.
+  On error: /usr/lib/x86_64-linux-gnu/libstdc++.so.6: version `GLIBCXX_3.4.22' not found
+     sudo apt-get install libstdc++6
+     sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+     sudo apt-get update
+     sudo apt-get upgrade
+     sudo apt-get dist-upgrade (This takes long time.)
+```     
+
 To install from GitHub, use
 
     pip install git+https://github.com/haven-jeon/PyKoSpacing.git
