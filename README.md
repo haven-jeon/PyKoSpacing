@@ -83,6 +83,10 @@ Run on command line(thanks [lqez](https://github.com/lqez)).
 ![](arch.png)
 
 
+#### For Training
+
+- https://github.com/haven-jeon/Train_KoSpacing
+
 #### Citation
 
 ```markdowns
