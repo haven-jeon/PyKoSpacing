@@ -85,7 +85,7 @@ Run on command line(thanks [lqez](https://github.com/lqez)).
 
 #### For Training
 
-- Trainong code uses an architecture that is more advanced than PyKoSpacing, but also contains the learning logic of PyKoSpacing.
+- Training code uses an architecture that is more advanced than PyKoSpacing, but also contains the learning logic of PyKoSpacing.
   - https://github.com/haven-jeon/Train_KoSpacing
 
 #### Citation
