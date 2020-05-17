@@ -38,6 +38,18 @@ Common sense, the first is the right answer.
 
 #### Install
 
+**NB:** `PyKoSpacing` depends on `keras` which only supports `python==3.6.x`. Using [Anaconda](https://www.anaconda.com/) to install 'PyKoSpacing' will prevent interference with system-wide python packages.
+
+##### Anaconda Install
+```
+conda create --name py-kospacing python=3.6 --yes
+conda activate py-kospacing
+conda install keras=2.1.5 h5py=2.7.1 --yes
+pip install tensorflow==1.6.0 argparse">=1.4.0"
+pip install git+https://github.com/haven-jeon/PyKoSpacing.git
+```
+
+##### PyPI Install
 Pre-requisite:
 ```
   proper installation of python3
