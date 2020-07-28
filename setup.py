@@ -1,10 +1,9 @@
 from setuptools import setup
-from pykospacing import __version__
 
 
 setup(name='pykospacing',
-      python_requires='==3.6.*',
-      version=__version__,
+      python_requires='>=3.6',
+      version=0.2,
       url='https://github.com/haven-jeon/PyKoSpacing',
       license='GPL-3',
       author='Heewon Jeon',
