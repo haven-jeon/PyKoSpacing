@@ -14,7 +14,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 model_path = pkg_resources.resource_filename('pykospacing', os.path.join('resources', 'models', 'kospacing'))
 dic_path = pkg_resources.resource_filename('pykospacing', os.path.join('resources', 'dicts', 'c2v.dic'))
 model = load_model(model_path)
-model._make_predict_function()
+model.make_predict_function()
 w2idx, _ = load_vocab(dic_path)
 
 
