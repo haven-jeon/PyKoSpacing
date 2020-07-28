@@ -3,6 +3,7 @@ from pykospacing import __version__
 
 
 setup(name='pykospacing',
+      python_requires='==3.6.*',
       version=__version__,
       url='https://github.com/haven-jeon/PyKoSpacing',
       license='GPL-3',
