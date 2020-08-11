@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(name='pykospacing',
       python_requires='>=3.6',
-      version=0.2,
+      version=0.3,
       url='https://github.com/haven-jeon/PyKoSpacing',
       license='GPL-3',
       author='Heewon Jeon',
