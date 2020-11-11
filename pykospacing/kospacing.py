@@ -4,7 +4,7 @@ import re
 
 import numpy as np
 import pkg_resources
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from pykospacing.embedding_maker import encoding_and_padding, load_vocab
 
 __all__ = ['spacing', ]
