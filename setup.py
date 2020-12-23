@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(name='pykospacing',
       python_requires='>=3.6',
-      version=0.3,
+      version=0.4,
       url='https://github.com/haven-jeon/PyKoSpacing',
       license='GPL-3',
       author='Heewon Jeon',
@@ -15,9 +15,9 @@ setup(name='pykospacing',
       include_package_data=True,
 
       install_requires=[
-          'tensorflow >= 2.3.0',
+          'tensorflow == 2.3.0',
           'keras >= 2.4.3',
-          'h5py >= 2.10.0',
+          'h5py == 2.10.0',
           'argparse >= 1.4.0',
       ],
 
