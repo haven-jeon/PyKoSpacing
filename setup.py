@@ -15,7 +15,7 @@ setup(name='pykospacing',
       include_package_data=True,
 
       install_requires=[
-          'tensorflow == 2.4.0',
+          'tensorflow == 2.5.0',
           'keras >= 2.4.3',
           'h5py == 2.10.0',
           'argparse >= 1.4.0',
