@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import argparse
-from pykospacing import spacing
+from pykospacing import Spacing
 
 
 def get_parser():
@@ -22,12 +22,10 @@ def main(args=sys.argv[1:]):
 
     source = args.infile.read()
     
-    limit = 198
     result = '\n'
+    spacing = Spacing()
     for line in source.splitlines():
-        while len(line) > limit:
-            result += spacing(line[0:limit])
-            line = line[limit:]
+        result += spacing(line)
         result += '\n'
 
     if args.overwrite:
