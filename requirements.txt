@@ -1,2 +1,2 @@
-tensorflow == 2.5.0
+tensorflow == 2.5.1
 h5py == 3.1.0
