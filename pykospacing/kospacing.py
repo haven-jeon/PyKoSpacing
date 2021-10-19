@@ -28,8 +28,13 @@ class Spacing:
         self._w2idx = W2IDX
         self.max_len = MAX_LEN
         self.pattern = re.compile(r'\s+')
-        self.rules = [(re.compile('\s*'.join(r)), r) for r in rules]
-
+        self.rules = {}
+        for r in rules:
+            if type(r) == str:
+                self.rules[r] = re.compile('\s*'.join(r))
+            else:
+                raise ValueError("rules must to have only string values.")
+    
     def get_spaced_sent(self, raw_sent):
         raw_sent_ = "«" + raw_sent + "»"
         raw_sent_ = raw_sent_.replace(' ', '^')
@@ -57,7 +62,7 @@ class Spacing:
         return subs
 
     def apply_rules(self, spaced_sent):
-        for rgx, word in self.rules:
+        for word, rgx in self.rules.items():
             spaced_sent = rgx.sub(word, spaced_sent)
         return spaced_sent
 
