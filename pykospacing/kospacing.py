@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import re
+import csv
 
 import numpy as np
 import pkg_resources
@@ -35,6 +36,27 @@ class Spacing:
             else:
                 raise ValueError("rules must to have only string values.")
     
+    def set_rules_by_csv(self, file_path, key=None):
+        with open(file_path, 'r', encoding='UTF-8') as csvfile:
+            csv_var = csv.reader(csvfile)
+            if key == None:
+                for line in csv_var:
+                    for word in line:
+                        self.rules[word] = re.compile('\s*'.join(word))
+            else:
+                csv_var = list(csv_var)
+                index = -1
+                for i, word in enumerate(csv_var[0]):
+                    if word == key:
+                        index = i
+                        break
+                
+                if index == -1:
+                    raise KeyError(f"'{key}' is not in csv file")
+                
+                for line in csv_var:
+                    self.rules[line[index]] = re.compile('\s*'.join(line[index]))
+
     def get_spaced_sent(self, raw_sent):
         raw_sent_ = "«" + raw_sent + "»"
         raw_sent_ = raw_sent_.replace(' ', '^')
