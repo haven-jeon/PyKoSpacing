@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import re
+import csv
 
 import numpy as np
 import pkg_resources
@@ -28,7 +29,33 @@ class Spacing:
         self._w2idx = W2IDX
         self.max_len = MAX_LEN
         self.pattern = re.compile(r'\s+')
-        self.rules = [(re.compile('\s*'.join(r)), r) for r in rules]
+        self.rules = {}
+        for r in rules:
+            if type(r) == str:
+                self.rules[r] = re.compile('\s*'.join(r))
+            else:
+                raise ValueError("rules must to have only string values.")
+    
+    def set_rules_by_csv(self, file_path, key=None):
+        with open(file_path, 'r', encoding='UTF-8') as csvfile:
+            csv_var = csv.reader(csvfile)
+            if key == None:
+                for line in csv_var:
+                    for word in line:
+                        self.rules[word] = re.compile('\s*'.join(word))
+            else:
+                csv_var = list(csv_var)
+                index = -1
+                for i, word in enumerate(csv_var[0]):
+                    if word == key:
+                        index = i
+                        break
+                
+                if index == -1:
+                    raise KeyError(f"'{key}' is not in csv file")
+                
+                for line in csv_var:
+                    self.rules[line[index]] = re.compile('\s*'.join(line[index]))
 
     def get_spaced_sent(self, raw_sent):
         raw_sent_ = "«" + raw_sent + "»"
@@ -57,7 +84,7 @@ class Spacing:
         return subs
 
     def apply_rules(self, spaced_sent):
-        for rgx, word in self.rules:
+        for word, rgx in self.rules.items():
             spaced_sent = rgx.sub(word, spaced_sent)
         return spaced_sent
 
