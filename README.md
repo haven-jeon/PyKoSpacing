@@ -77,6 +77,22 @@ To install from GitHub, use
 '귀 밑에서 턱까지 잇따라 난 수염을 구레나룻이라고 한다.'
 ```
 
+Setting rules with csv file. (you only need to use `set_rules_by_csv()` method.)
+
+```bash
+$ cat test.csv
+인덱스,단어
+1,네이버영화
+2,언급된단어
+```
+
+```python
+>>> from pykospacing import Spacing
+>>> spacing = Spacing(rules=[''])
+>>> spacing.set_rules_by_csv('./test.csv', '단어')
+>>> print(spacing("김형호영화시장분석가는'1987'의네이버영화정보네티즌10점평에서언급된단어들을지난해12월27일부터올해1월10일까지통계프로그램R과KoNLP패키지로텍스트마이닝하여분석했다."))
+"김형호 영화시장 분석가는 '1987'의 네이버영화 정보 네티즌 10점 평에서 언급된단어들을 지난해 12월 27일부터 올해 1월 10일까지 통계 프로그램 R과 KoNLP 패키지로 텍스트마이닝하여 분석했다."
+```
 
 Run on command line(thanks [lqez](https://github.com/lqez)). 
 
