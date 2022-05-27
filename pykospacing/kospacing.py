@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import re
 import csv
 
@@ -9,7 +10,7 @@ from tensorflow.keras.models import load_model
 from pykospacing.embedding_maker import encoding_and_padding, load_vocab
 
 __all__ = ['Spacing', ]
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 
 model_path = pkg_resources.resource_filename(
     'pykospacing', os.path.join('resources', 'models', 'kospacing'))
