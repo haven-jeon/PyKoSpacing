@@ -126,5 +126,8 @@ journal = {GitHub repository},
 howpublished = {\url{https://github.com/haven-jeon/KoSpacing}}
 ```
 
+### Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=haven-jeon/PyKoSpacing&type=Date)](https://star-history.com/#haven-jeon/PyKoSpacing&Date)
 
 
