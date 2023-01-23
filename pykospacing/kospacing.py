@@ -65,7 +65,7 @@ class Spacing:
         mat_in = encoding_and_padding(
             word2idx_dic=self._w2idx, sequences=sents_in, maxlen=200,
             padding='post', truncating='post')
-        results = self._model.predict(mat_in)
+        results = self._model.predict(mat_in, verbose=0)
         mat_set = results[0, ]
         preds = np.array(
             ['1' if i > 0.5 else '0' for i in mat_set[:len(raw_sent_)]])
