@@ -1,5 +1,15 @@
 from setuptools import setup
+import os, platform
 
+def requirements():
+    if platform.system() == 'Darwin':
+        return []
+
+    def open_req(req_file):
+        with open(os.path.join(os.path.dirname(os.path.abspath("__file__")), req_file)) as f:
+            return f.read().splitlines()
+
+    return open_req('requirements.txt')
 
 setup(name='pykospacing',
       python_requires='>=3.6',
@@ -14,11 +24,7 @@ setup(name='pykospacing',
       zip_safe=False,
       include_package_data=True,
 
-      install_requires=[
-          'tensorflow == 2.9.3',
-          'h5py == 3.1.0',
-          'argparse >= 1.4.0',
-      ],
+      install_requires=requirements(),
 
       entry_points={
           'console_scripts': [
