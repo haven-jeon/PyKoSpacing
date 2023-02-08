@@ -56,6 +56,22 @@ On error: /usr/lib/x86_64-linux-gnu/libstdc++.so.6: version `GLIBCXX_3.4.22' not
    sudo apt-get upgrade
    sudo apt-get dist-upgrade (This takes long time.)
 ```     
+Darwin(m1) case: You should install tensorflow in a different way.(Use [Miniforge3](https://github.com/conda-forge/miniforge))
+```sh
+# Install Miniforge3 for mac
+curl -O https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
+chmod +x Miniforge3-MacOSX-arm64.sh
+sh Miniforge3-MacOSX-arm64.sh
+# Activate Miniforge3 virtualenv
+# You should use Python version 3.10 or less.
+source ~/miniforge3/bin/activate
+# Install the Tensorflow dependencies 
+conda install -c apple tensorflow-deps 
+# Install base tensorflow 
+python -m pip install tensorflow-macos 
+# Install metal plugin 
+python -m pip install tensorflow-metal
+```
 
 To install from GitHub, use
 
