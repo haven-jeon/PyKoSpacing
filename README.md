@@ -57,7 +57,7 @@ On error: /usr/lib/x86_64-linux-gnu/libstdc++.so.6: version `GLIBCXX_3.4.22' not
    sudo apt-get dist-upgrade (This takes long time.)
 ```     
 Darwin(m1) case: You should install tensorflow in a different way.(Use [Miniforge3](https://github.com/conda-forge/miniforge))
-```bssh
+```bash
 # Install Miniforge3 for mac
 curl -O https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
 chmod +x Miniforge3-MacOSX-arm64.sh
