@@ -21,6 +21,18 @@ MODEL.make_predict_function()
 W2IDX, _ = load_vocab(dic_path)
 MAX_LEN = 198
 
+def is_korean_or_symbol(char):
+    if ord('가') <= ord(char) <= ord('힣'):
+        return True
+    if ord('ㄱ') <= ord(char) <= ord('ㅣ'):
+        return True
+    if ord('!') <= ord(char) <= ord('@'):
+        return True
+    if ord('[') <= ord(char) <= ord('`'):
+        return True
+    if ord('{') <= ord(char) <= ord('~'):
+        return True
+    return False
 
 class Spacing:
     """predict spacing for input string
@@ -58,7 +70,7 @@ class Spacing:
                 for line in csv_var:
                     self.rules[line[index]] = re.compile('\s*'.join(line[index]))
 
-    def get_spaced_sent(self, raw_sent):
+    def get_spaced_sent(self, raw_sent, only_ko=False):
         raw_sent_ = "«" + raw_sent + "»"
         raw_sent_ = raw_sent_.replace(' ', '^')
         sents_in = [raw_sent_, ]
@@ -69,14 +81,18 @@ class Spacing:
         mat_set = results[0, ]
         preds = np.array(
             ['1' if i > 0.5 else '0' for i in mat_set[:len(raw_sent_)]])
-        return self.make_pred_sents(raw_sent_, preds)
+        return self.make_pred_sents(raw_sent_, preds, only_ko)
 
-    def make_pred_sents(self, x_sents, y_pred):
+    def make_pred_sents(self, x_sents, y_pred, only_ko=False):
         res_sent = []
-        for i, j in zip(x_sents, y_pred):
+        for char_idx, (i, j) in enumerate(zip(x_sents, y_pred)):
             if j == '1':
                 res_sent.append(i)
-                res_sent.append(' ')
+                if only_ko:
+                    if is_korean_or_symbol(i) or (char_idx < len(y_pred)-1 and is_korean_or_symbol(x_sents[char_idx+1])):
+                        res_sent.append(' ')
+                else:
+                    res_sent.append(' ')
             else:
                 res_sent.append(i)
         subs = re.sub(self.pattern, ' ', ''.join(res_sent).replace('^', ' '))
@@ -89,13 +105,13 @@ class Spacing:
             spaced_sent = rgx.sub(word, spaced_sent)
         return spaced_sent
 
-    def __call__(self, sent):
+    def __call__(self, sent, only_ko=False):
         if len(sent) > self.max_len:
             splitted_sent = [sent[y-self.max_len:y] for y in range(self.max_len, len(sent)+self.max_len, self.max_len)]
-            spaced_sent = ''.join([self.get_spaced_sent(ss)
+            spaced_sent = ''.join([self.get_spaced_sent(ss, only_ko)
                                 for ss in splitted_sent])
         else:
-            spaced_sent = self.get_spaced_sent(sent)
+            spaced_sent = self.get_spaced_sent(sent, only_ko)
         if len(self.rules) > 0:
             spaced_sent = self.apply_rules(spaced_sent)
         return spaced_sent.strip()
