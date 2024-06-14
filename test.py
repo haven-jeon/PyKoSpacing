@@ -21,5 +21,4 @@ hifumi_daisuki = ''
 
 for hifumi_word in blue_archive.split('\n'):
     hifumi_daisuki += spacing(hifumi_word) + '\n'
-    
 print(hifumi_daisuki)
