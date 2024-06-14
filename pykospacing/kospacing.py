@@ -7,18 +7,18 @@ import csv
 
 import numpy as np
 import pkg_resources
-from tensorflow.keras.models import load_model
+from tensorflow.keras.layers import TFSMLayer
 from pykospacing.embedding_maker import encoding_and_padding, load_vocab
 
 __all__ = ['Spacing', ]
 
 
 model_path = pkg_resources.resource_filename(
-    'pykospacing', os.path.join('resources', 'models', 'kospacing'))
+    'pykospacing', os.path.join('resources', 'models'))
 dic_path = pkg_resources.resource_filename(
     'pykospacing', os.path.join('resources', 'dicts', 'c2v.dic'))
-MODEL = load_model(model_path)
-MODEL.make_predict_function()
+MODEL = TFSMLayer(model_path,call_endpoint="serving_default")
+#MODEL.make_predict_function()
 W2IDX, _ = load_vocab(dic_path)
 MAX_LEN = 198
 
@@ -67,8 +67,8 @@ class Spacing:
         mat_in = encoding_and_padding(
             word2idx_dic=self._w2idx, sequences=sents_in, maxlen=200,
             padding='post', truncating='post')
-        results = self._model.predict(mat_in, verbose=0)
-        mat_set = results[0,]
+        results = self._model(mat_in)
+        mat_set = results['output_0'][0]
         preds = np.array(['1' if i > 0.5 else '0' for i in mat_set[:len(raw_sent_)]])
         if orig_sent is not None:
             orig_sent_ = "«" + orig_sent + "»"
@@ -77,8 +77,8 @@ class Spacing:
             mat_in = encoding_and_padding(
                 word2idx_dic=self._w2idx, sequences=sents_in, maxlen=200,
                 padding='post', truncating='post')
-            results = self._model.predict(mat_in, verbose=0)
-            mat_set = results[0,]
+            results = self._model(mat_in)
+            mat_set = results['output_0'][0]
             orig_preds = np.array(['1' if i > 0.5 else '0' for i in mat_set[:len(orig_sent_)]])
         else:
             orig_sent_ = None
