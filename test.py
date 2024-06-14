@@ -17,6 +17,13 @@ blue_archive = """아즈사쨩이살인자가되는건싫어요...
 우리들의이야기......
 우리들의,청춘의이야기를!!"""
 
+print(spacing("김형호영화시장분석가는'1987'의네이버영화정보네티즌10점평에서언급된단어들을지난해12월27일부터올해1월10일까지통계프로그램R과KoNLP패키지로텍스트마이닝하여분석했다."))
+print(spacing('귀밑에서턱까지잇따라난수염을구레나룻이라고한다.'))
+
+spacing = Spacing(rules=['구레나룻'])
+
+print(spacing('귀밑에서턱까지잇따라난수염을구레나룻이라고한다.'))
+
 hifumi_daisuki = ''
 
 for hifumi_word in blue_archive.split('\n'):
