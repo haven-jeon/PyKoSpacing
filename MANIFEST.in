@@ -1,5 +1,6 @@
 include pykospacing/resources/dicts/*
-include pykospacing/resources/models/* 
+include pykospacing/resources/models/*
+include pykospacing/resources/models/variables/*
 include pykospacing/embedding_maker.py
 include pykospacing/kospacing.py
 
