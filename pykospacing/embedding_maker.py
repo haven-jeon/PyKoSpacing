@@ -34,4 +34,4 @@ def encoding_and_padding(word2idx_dic, sequences, **params):
     """
     seq_idx = [[word2idx_dic.get(a, word2idx_dic['__ETC__']) for a in i] for i in sequences]
     params['value'] = word2idx_dic['__PAD__']
-    return(sequence.pad_sequences(seq_idx, **params))
+    return(sequence.pad_sequences(seq_idx, **params).astype('float32'))
