@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
 import os
+from pathlib import Path
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import re
 import csv
 
 import numpy as np
-import pkg_resources
 from tensorflow.keras.layers import TFSMLayer
 from pykospacing.embedding_maker import encoding_and_padding, load_vocab
 
 __all__ = ['Spacing', ]
 
 
-model_path = pkg_resources.resource_filename(
-    'pykospacing', os.path.join('resources', 'models'))
-dic_path = pkg_resources.resource_filename(
-    'pykospacing', os.path.join('resources', 'dicts', 'c2v.dic'))
+resource_path = Path(__file__).resolve().parent / 'resources'
+model_path = str(resource_path / 'models')
+dic_path = str(resource_path / 'dicts' / 'c2v.dic')
 MODEL = TFSMLayer(model_path,call_endpoint="serving_default")
 #MODEL.make_predict_function()
 W2IDX, _ = load_vocab(dic_path)
