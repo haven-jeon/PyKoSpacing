@@ -1,4 +1,3 @@
-from tensorflow.keras.preprocessing import sequence
 import json
 import numpy as np
 
@@ -32,6 +31,7 @@ def encoding_and_padding(word2idx_dic, sequences, **params):
         maxlen either in the beginning or in the end of the sequence
     :value: float, value to pad the sequences to the desired value.
     """
+    from tensorflow.keras.preprocessing import sequence
     seq_idx = [[word2idx_dic.get(a, word2idx_dic['__ETC__']) for a in i] for i in sequences]
     params['value'] = word2idx_dic['__PAD__']
     return(sequence.pad_sequences(seq_idx, **params).astype('float32'))

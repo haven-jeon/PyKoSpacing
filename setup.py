@@ -25,6 +25,7 @@ setup(name='pykospacing',
       include_package_data=True,
 
       install_requires=requirements(),
+      extras_require={'v2': ['torch>=2.4', 'transformers>=5.0', 'safetensors']},
 
       entry_points={
           'console_scripts': [

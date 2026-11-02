@@ -1,41 +1,55 @@
 # -*- coding: utf-8 -*-
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '3')
 import re
 import csv
+from functools import lru_cache
+from importlib import resources
 
 import numpy as np
-import pkg_resources
-from tensorflow.keras.layers import TFSMLayer
+
 from pykospacing.embedding_maker import encoding_and_padding, load_vocab
 
 __all__ = ['Spacing', ]
 
-
-model_path = pkg_resources.resource_filename(
-    'pykospacing', os.path.join('resources', 'models'))
-dic_path = pkg_resources.resource_filename(
-    'pykospacing', os.path.join('resources', 'dicts', 'c2v.dic'))
-MODEL = TFSMLayer(model_path,call_endpoint="serving_default")
-#MODEL.make_predict_function()
-W2IDX, _ = load_vocab(dic_path)
 MAX_LEN = 198
+BACKENDS = ('v1', 'v2')  # v1: KoSpacing v1 (TensorFlow), v2: KoSpacing v2 (tag model)
+
+
+@lru_cache(maxsize=None)
+def _tf_model():
+    """The TensorFlow model and vocabulary, loaded on first use so that KoSpacing v2 needs no TensorFlow."""
+    from tensorflow.keras.layers import TFSMLayer
+    base = resources.files('pykospacing') / 'resources'
+    model = TFSMLayer(str(base / 'models'), call_endpoint="serving_default")
+    w2idx, _ = load_vocab(str(base / 'dicts' / 'c2v.dic'))
+    return model, w2idx
 
 
 class Spacing:
     """predict spacing for input string
     """
 
-    def __init__(self, rules=[]):
-        self._model = MODEL
-        self._w2idx = W2IDX
+    def __init__(self, rules=[], backend='v1', checkpoint=None, device=None):
+        """backend='v1' is KoSpacing v1, the original TensorFlow model. backend='v2' is KoSpacing v2, the
+        instruction-following tag model (pykospacing/v2.py): checkpoint is its directory (or PYKOSPACING_V2_CHECKPOINT),
+        device 'cuda' or 'cpu'."""
+        if backend not in BACKENDS:
+            raise ValueError(f"backend must be one of {BACKENDS}")
+        self.backend = backend
+        if backend == 'v1':
+            self._model, self._w2idx = _tf_model()
+            self._v2 = None
+        else:
+            from pykospacing.v2 import KoSpacingV2
+            self._v2 = KoSpacingV2(checkpoint, device)
         self.max_len = MAX_LEN
         self.pattern = re.compile(r'\s+')
         self.rules = {}
         for r in rules:
             if type(r) == str:
-                self.rules[r] = re.compile('\s*'.join(r))
+                self.rules[r] = re.compile(r'\s*'.join(r))
             else:
                 raise ValueError("rules must to have only string values.")
 
@@ -45,7 +59,7 @@ class Spacing:
             if key == None:
                 for line in csv_var:
                     for word in line:
-                        self.rules[word] = re.compile('\s*'.join(word))
+                        self.rules[word] = re.compile(r'\s*'.join(word))
             else:
                 csv_var = list(csv_var)
                 index = -1
@@ -58,7 +72,26 @@ class Spacing:
                     raise KeyError(f"'{key}' is not in csv file")
 
                 for line in csv_var:
-                    self.rules[line[index]] = re.compile('\s*'.join(line[index]))
+                    self.rules[line[index]] = re.compile(r'\s*'.join(line[index]))
+
+    def _require_v2(self, name):
+        if self._v2 is None:
+            raise NotImplementedError(f"{name}() needs KoSpacing v2: Spacing(backend='v2')")
+
+    def fix(self, sent):
+        """Correct spacing while keeping the spaces already in `sent` that are right (KoSpacing v2).
+        A list of strings is processed as one batch and returns a list."""
+        self._require_v2('fix')
+        many = not isinstance(sent, str)
+        out = [self.apply_rules(s) if self.rules else s for s in self._v2.fix(list(sent) if many else [sent])]
+        return out if many else out[0]
+
+    def space_probs(self, sent):
+        """[(character, probability that a space follows)] over the non-space characters of `sent` (KoSpacing v2)."""
+        self._require_v2('space_probs')
+        many = not isinstance(sent, str)
+        out = self._v2.space_probs(list(sent) if many else [sent])
+        return out if many else out[0]
 
     def get_spaced_sent(self, raw_sent, deleted_str_list=None, deleted_idx_list=None, orig_sent=None, post_process=False):
         raw_sent_ = "«" + raw_sent + "»"
@@ -136,6 +169,14 @@ class Spacing:
     def __call__(self, sent, ignore='none',
                  ignore_pattern=r'[^가-힣ㄱ-ㅣ!-@[-`{-~\s]+,*( [^가-힣ㄱ-ㅣ!-@[-`{-~\s]+,*)*[.,!?]* *'):
         assert ignore in ['none', 'pre', 'pre2', 'post']
+        if self._v2 is not None:
+            # the tag model reads Latin letters, digits and symbols directly, so `ignore` has nothing to do here
+            if ignore != 'none':
+                raise ValueError("ignore is only for KoSpacing v1 (backend='v1')")
+            many = not isinstance(sent, str)
+            out = self._v2.space(list(sent) if many else [sent])
+            out = [self.apply_rules(s) if self.rules else s for s in out]
+            return out if many else out[0]
         if len(sent) > self.max_len:
             splitted_sent = [sent[y - self.max_len:y] for y in
                              range(self.max_len, len(sent) + self.max_len, self.max_len)]
