@@ -31,10 +31,13 @@ class Spacing:
     """predict spacing for input string
     """
 
-    def __init__(self, rules=[], backend='v1', checkpoint=None, device=None):
+    def __init__(self, rules=[], backend='v1', checkpoint=None, device=None, revision=None, **v2_options):
         """backend='v1' is KoSpacing v1, the original TensorFlow model. backend='v2' is KoSpacing v2, the
-        instruction-following tag model (pykospacing/v2.py): checkpoint is its directory (or PYKOSPACING_V2_CHECKPOINT),
-        device 'cuda' or 'cpu'."""
+        instruction-following tag model (pykospacing/v2.py, docs/kospacing-v2.md): checkpoint is a local directory or a
+        Hugging Face model repo id (default gogamza/seqtagger-0.8b, or PYKOSPACING_V2_CHECKPOINT), revision pins the repo version, device is 'cuda' or
+        'cpu'; v2_options (threads, token_budget) go to KoSpacingV2."""
+        if backend == 'v1' and (checkpoint or device or revision or v2_options):
+            raise ValueError("checkpoint, device, revision and v2 options are for backend='v2'")
         if backend not in BACKENDS:
             raise ValueError(f"backend must be one of {BACKENDS}")
         self.backend = backend
@@ -43,7 +46,7 @@ class Spacing:
             self._v2 = None
         else:
             from pykospacing.v2 import KoSpacingV2
-            self._v2 = KoSpacingV2(checkpoint, device)
+            self._v2 = KoSpacingV2(checkpoint, device, revision=revision, **v2_options)
         self.max_len = MAX_LEN
         self.pattern = re.compile(r'\s+')
         self.rules = {}

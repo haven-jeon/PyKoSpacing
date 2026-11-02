@@ -1,12 +1,12 @@
 """KoSpacing v2 tests. Skipped unless PYKOSPACING_V2_CHECKPOINT points to a checkpoint (and torch is installed).
 
-    PYKOSPACING_V2_CHECKPOINT=<dir> KOSPACING_ROOT=<kospacing> python -m unittest tests.test_v2
+    PYKOSPACING_V2_CHECKPOINT=<dir or repo id> python -m unittest tests.test_v2
 """
 import os
 import sys
 import unittest
 
-from pykospacing.v2 import split_long
+from pykospacing.v2 import resolve_checkpoint, split_long
 
 CHECKPOINT = os.environ.get('PYKOSPACING_V2_CHECKPOINT')
 
@@ -24,6 +24,16 @@ class SplitTest(unittest.TestCase):
     def test_hard_cut_without_boundaries(self):
         pieces = split_long('가' * 25, 10)
         self.assertEqual([len(p) for p in pieces], [10, 10, 5])
+
+
+class ResolveTest(unittest.TestCase):
+    def test_local_directory(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        self.assertEqual(str(resolve_checkpoint(here)), here)
+
+    def test_missing_directory(self):
+        with self.assertRaises(FileNotFoundError):
+            resolve_checkpoint('./no/such/checkpoint')
 
 
 @unittest.skipUnless(CHECKPOINT, 'PYKOSPACING_V2_CHECKPOINT not set')
@@ -72,6 +82,11 @@ class V2Test(unittest.TestCase):
 
 
 class V1Test(unittest.TestCase):
+    def test_v2_options_need_v2(self):
+        from pykospacing import Spacing
+        with self.assertRaises(ValueError):
+            Spacing(backend='v1', checkpoint='x')
+
     def test_unknown_backend(self):
         from pykospacing import Spacing
         for name in ('tf', 'tagger', 'v3'):

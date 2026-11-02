@@ -173,13 +173,13 @@ Examples of `ignore` parameter
 PyKoSpacing has two models.
 
 - **KoSpacing v1** (`backend='v1'`, default): the original TensorFlow model described below. Small and fast on CPU.
-- **KoSpacing v2** (`backend='v2'`, experimental): an instruction-following tag model (Qwen3.5-0.8B with a
-  per-character readout). Besides spacing, it corrects spacing that is already there (`fix()`), gives per-character
+- **KoSpacing v2** (`backend='v2'`, experimental): an instruction-following sequence tagger, Qwen3.5-0.8B with a
+  per-character readout, published as [gogamza/seqtagger-0.8b](https://huggingface.co/gogamza/seqtagger-0.8b). Besides spacing, it corrects spacing that is already there (`fix()`), gives per-character
   probabilities (`space_probs()`), and spaces a list of strings as one batch. It needs no TensorFlow.
 
 ```python
 >>> from pykospacing import Spacing
->>> spacing = Spacing(backend='v2', checkpoint='path/to/checkpoint')   # or PYKOSPACING_V2_CHECKPOINT
+>>> spacing = Spacing(backend='v2')        # downloads gogamza/seqtagger-0.8b; checkpoint= takes another repo or a directory
 >>> spacing('아버지가방에들어가신다')
 '아버지가 방에 들어가신다'
 >>> spacing.fix('오늘은날씨가 정말좋 네요. 산책 가실분?')       # keeps the spaces that are right
@@ -188,16 +188,17 @@ PyKoSpacing has two models.
 >>> spacing.space_probs('아버지가방에')                          # [(char, P(space after)), ...]
 ```
 
-Install the v2 dependencies with `pip install pykospacing[v2]`. For now v2 also needs the kospacing code
-(`KOSPACING_ROOT`).
+Install the v2 dependencies with `pip install "pykospacing[v2]"`. The model is downloaded from
+`gogamza/seqtagger-0.8b` on first use, or `checkpoint=` gives another repo id or a local directory. Setup, offline use, CPU/GPU notes and how to publish a checkpoint:
+[docs/kospacing-v2.md](docs/kospacing-v2.md).
 
-Word F1 on the kospacing test sets (higher is better):
+Word F1 on the kospacing test sets, all test sentences (higher is better):
 
 | Test set | KoSpacing v1 | KoSpacing v2 |
 |---|---|---|
-| Wikipedia sentences, spaces removed | 0.827 | **0.847** |
-| KLUE-NER validation (news, reviews), spaces removed | **0.796** | 0.728 |
-| KOLD comments, spaces removed (gold is the writer's own spacing) | **0.632** | 0.588 |
+| Wikipedia sentences, spaces removed | 0.824 | **0.847** |
+| KLUE-NER validation (news, reviews), spaces removed | **0.788** | 0.728 |
+| KOLD comments, spaces removed (gold is the writer's own spacing) | **0.630** | 0.588 |
 | Wikipedia with noisy spacing (15% of spaces dropped, 6% added), v2 `fix()` | 0.820 | **0.919** |
 | same, whole sentence correct | 0.264 | **0.516** |
 
@@ -208,7 +209,7 @@ is gives 0.730 / 0.140, because v1 trusts the existing spaces.
 |---|---|---|
 | Model size | 2.4 MB | 1.7 GB |
 | Runs on | CPU | GPU recommended |
-| Needs | TensorFlow | PyTorch, transformers, the kospacing code (`KOSPACING_ROOT`) |
+| Needs | TensorFlow | PyTorch, transformers, safetensors, huggingface_hub |
 
 Speed (`scripts/bench_pykospacing.py` in kospacing; test sentences of about 45 characters, spaces removed;
 NVIDIA GB10 with a 20-core Arm CPU, 10x Cortex-X925 + 10x Cortex-A725):
