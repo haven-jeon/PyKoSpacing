@@ -122,7 +122,9 @@ For a private repo, log in first (`hf auth login`) or set `HF_TOKEN`.
 
 ## 7. For maintainers: publishing a checkpoint
 
-Checkpoints are trained in the kospacing project. Its `scripts/export_hf.py` writes a repo folder with the model card.
+Checkpoints are trained in the kospacing project. The repo's own files (model card template, `seqtagger.py`,
+`PROMPT.md`, `examples/`) live in kospacing `hf/seqtagger-0.8b/`, and `scripts/export_hf.py` combines them with a
+checkpoint into the folder to upload.
 
 ### 7.1 Files
 
@@ -132,7 +134,8 @@ Checkpoints are trained in the kospacing project. Its `scripts/export_hf.py` wri
 | `readout.safetensors` | `Linear(hidden, 255)` readout over single-token option codes |
 | `decision_config.json` | option codes and their token ids (`format_version` 1) |
 | `tokenizer.json`, `tokenizer_config.json`, `chat_template.jinja` | tokenizer and chat template |
-| `README.md` | model card |
+| `README.md` | model card, rendered from the template in kospacing `hf/seqtagger-0.8b/README.md.tmpl` |
+| `seqtagger.py`, `PROMPT.md`, `examples/` | standalone inference code for any tagging question, prompt format, examples |
 
 `pykospacing/v2.py` reads exactly these files. It refuses a `decision_config.json` whose `format_version` it does not
 know, so a new format needs a new PyKoSpacing release.
@@ -155,8 +158,9 @@ know, so a new format needs a new PyKoSpacing release.
        --repo-id gogamza/seqtagger-0.8b --license <license> --output exports/seqtagger-0.8b
    ```
 
-   The script loads the exported folder with PyKoSpacing and stops if it spaces differently from the source
-   checkpoint. Read the generated `README.md` and fill in anything shown as `–`.
+   The script replays the run's sampling to fill the task table, loads the exported folder with its own
+   `seqtagger.py` and with PyKoSpacing, and stops if either spaces differently from the source checkpoint.
+   Read the generated `README.md`; results not measured yet are shown as `–`.
 
 ### 7.3 Upload
 
