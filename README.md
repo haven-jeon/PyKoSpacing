@@ -211,20 +211,23 @@ is gives 0.730 / 0.140, because v1 trusts the existing spaces.
 | Runs on | CPU | GPU recommended |
 | Needs | TensorFlow | PyTorch, transformers, safetensors, huggingface_hub |
 
-Speed (`scripts/bench_pykospacing.py` in kospacing; test sentences of about 45 characters, spaces removed;
+Speed (`scripts/bench_pykospacing.py` in kospacing; test sentences of 43 to 50 characters on average, spaces removed;
 NVIDIA GB10 with a 20-core Arm CPU, 10x Cortex-X925 + 10x Cortex-A725):
 
 | | v1 on CPU | v2 on CPU | v2 on GPU |
 |---|---|---|---|
-| One sentence per call, median latency | 11 ms | 1,150 ms | (pending) |
-| One sentence per call, throughput | 83 sentences/s (4,100 chars/s) | 0.83 sentences/s (36 chars/s) | (pending) |
-| A list in one call, throughput | – | 0.97 sentences/s (48 chars/s) | (pending) |
-| Model load | 1.5 s | 4.8 s | |
+| One sentence per call, median latency | 11 ms | 1,150 ms | 18 ms |
+| One sentence per call, throughput | 83 sentences/s (4,100 chars/s) | 0.83 sentences/s (36 chars/s) | 55 sentences/s (2,800 chars/s) |
+| A list in one call, throughput | – | 0.97 sentences/s (48 chars/s) | 69 sentences/s (3,500 chars/s) |
+| Model load | 1.5 s | 4.8 s | 13.7 s (with CUDA start-up) |
 
 - v1 takes one string per call.
 - On CPU, v2 runs in float32 with PyTorch's reference linear-attention code (the fast kernels are GPU-only).
   More torch threads barely help (8: 1,150 ms, 20: 1,120 ms). On GPU it runs in bfloat16; CPU and GPU outputs
   agreed on 49 of 50 test sentences.
+- On GPU, v2 is about 65 times faster than on CPU, and a single call takes about as long as v1 on CPU (18 ms vs 11 ms).
+  Measured with `flash-linear-attention` installed and without `causal_conv1d` (transformers then uses PyTorch code
+  for the short convolutions).
 - v2 on CPU is about 100 times slower than v1. Use it on a GPU, or where its spacing correction matters more than speed.
 
 `ignore=` applies to v1 only: v2 reads Latin letters, digits and symbols directly.

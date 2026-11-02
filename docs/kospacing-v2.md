@@ -96,8 +96,8 @@ For a private repo, log in first (`hf auth login`) or set `HF_TOKEN`.
 |---|---|---|
 | Precision | bfloat16 | float32 |
 | Weights in memory | about 1.7 GB | about 3.4 GB |
-| One sentence of about 45 characters | see the README table | about 1.1 s |
-| A list in one call | see the README table | about 1 sentence/s |
+| One sentence of about 45 characters | about 18 ms | about 1.1 s |
+| A list in one call | about 70 sentences/s | about 1 sentence/s |
 
 - On CPU, v2 is about 100 times slower than v1. Use a GPU for volume work, and pass lists instead of looping over
   sentences.
