@@ -119,6 +119,7 @@ For a private repo, log in first (`hf auth login`) or set `HF_TOKEN`.
 | `LocalEntryNotFoundError` | `HF_HUB_OFFLINE=1` and the checkpoint is not cached: download it first (section 4). |
 | `RuntimeError: 0 active drivers` (Triton) | A CPU model was built after the GPU kernels were bound: build the CPU model first, or use a separate process. |
 | `ModuleNotFoundError: ...qwen3_5` | transformers is too old for Qwen3.5: `pip install "transformers>=5.17"`. |
+| `fatal error: Python.h: No such file or directory`, then `Triton is not supported on current platform, roll back to CPU` | Triton compiles a small C driver on first use and needs the Python headers, which a system Python often lacks. The model still runs, but without the fast kernels. Install the headers (`sudo apt install python3.12-dev` for the Python version of your environment), or create the environment with a Python that ships them (`uv venv --managed-python`, conda). |
 | Warning `... falling back to its reference PyTorch implementation` on GPU | Fast kernels are missing: `pip install flash-linear-attention` (section 1). |
 | GPU out of memory | Lower `token_budget`, e.g. `Spacing(backend='v2', checkpoint=..., token_budget=8192)`. |
 | `NotImplementedError: fix() needs KoSpacing v2` | `fix()` and `space_probs()` exist only for `backend='v2'`. |
