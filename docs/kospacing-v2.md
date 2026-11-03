@@ -55,12 +55,12 @@ there.
 Arguments take precedence over environment variables. A value that starts with `.`, `/` or `~` is always a local
 path; a missing directory raises `FileNotFoundError` instead of trying the Hub.
 
-The default model is pinned: each PyKoSpacing version loads the kotag-0.8b release it was tested with
+The default model is pinned: each PyKoSpacing version loads the kotag-0.8B release it was tested with
 (`DEFAULT_REVISION` in `pykospacing/v2.py`, now `v1.0`), so a new upload to the repo does not change your results.
 Pass `revision='main'` to try the newest upload, or pin a revision yourself when you use another repo:
 
 ```python
-spacing = Spacing(backend='v2', revision='main')                                  # newest kotag-0.8b upload
+spacing = Spacing(backend='v2', revision='main')                                  # newest kotag-0.8B upload
 spacing = Spacing(backend='v2', checkpoint='your/fine-tuned-repo', revision='v1.0')
 ```
 
