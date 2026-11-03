@@ -189,7 +189,7 @@ PyKoSpacing has two models.
 ```
 
 Install the v2 dependencies with `pip install "pykospacing[v2]"`. The model is downloaded from
-`gogamza/kotag-0.8b` on first use, or `checkpoint=` gives another repo id or a local directory. Setup, offline use, CPU/GPU notes and how to publish a checkpoint:
+`gogamza/kotag-0.8b` on first use, or `checkpoint=` gives another repo id or a local directory. Setup, offline use and CPU/GPU notes:
 [docs/kospacing-v2.md](docs/kospacing-v2.md).
 
 Word F1 on the kospacing test sets, all test sentences (higher is better):
