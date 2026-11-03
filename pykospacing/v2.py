@@ -5,7 +5,7 @@ One model labels every character of the input in a single forward pass. The spac
 below are fixed wordings the model was trained on, so results match the "seen" columns of the kospacing evaluation.
 
 Needs torch, transformers, safetensors and huggingface_hub (pip install pykospacing[v2]); TensorFlow is not used.
-A checkpoint is a local directory or a Hugging Face model repo id, by default gogamza/kotag-0.8b;
+A checkpoint is a local directory or a Hugging Face model repo id, by default gogamza/kotag-0.8b at tag v1.0;
 see docs/kospacing-v2.md.
 """
 
@@ -15,7 +15,7 @@ import re
 import sys
 from pathlib import Path
 
-__all__ = ['KoSpacingV2', 'TagReadout', 'DEFAULT_REPO', 'SPACING_QUESTION', 'FIX_QUESTION', 'resolve_checkpoint']
+__all__ = ['KoSpacingV2', 'TagReadout', 'DEFAULT_REPO', 'DEFAULT_REVISION', 'SPACING_QUESTION', 'FIX_QUESTION', 'resolve_checkpoint']
 
 SPACING_QUESTION = {"type": "tag", "unit": "char", "instructions": "띄어쓰기를 해라",
                     "criteria": {"0": "다음 글자와 붙여 씀", "1": "이 글자 뒤에서 띄어 씀"}}
@@ -25,6 +25,7 @@ FIX_QUESTION = {"type": "tag", "unit": "char", "instructions": "잘못된 띄어
 MAX_CHARS = 400          # characters per model input; longer lines are split at sentence ends, then spaces
 SENTENCE_END = re.compile(r'[.!?…。]+["\'”’)\]]*')
 DEFAULT_REPO = 'gogamza/kotag-0.8b'
+DEFAULT_REVISION = 'v1.0'  # the release of DEFAULT_REPO this PyKoSpacing version is tested with
 MAX_OPTIONS = 255
 FORMAT_VERSION = 1
 SYSTEM = ("Label each unit of the input using the question and option descriptions. "
@@ -177,9 +178,12 @@ class KoSpacingV2:
     def __init__(self, checkpoint=None, device=None, token_budget=32768, revision=None, threads=None):
         """checkpoint: a local directory or a Hugging Face model repo id (else PYKOSPACING_V2_CHECKPOINT, else
         DEFAULT_REPO);
-        revision: branch, tag or commit of the repo (else PYKOSPACING_V2_REVISION); device: 'cuda' or 'cpu'."""
+        revision: branch, tag or commit of the repo (else PYKOSPACING_V2_REVISION, else DEFAULT_REVISION for
+        DEFAULT_REPO and the latest commit for other repos); device: 'cuda' or 'cpu'."""
         checkpoint = checkpoint or os.environ.get('PYKOSPACING_V2_CHECKPOINT') or DEFAULT_REPO
         revision = revision or os.environ.get('PYKOSPACING_V2_REVISION')
+        if revision is None and str(checkpoint) == DEFAULT_REPO:
+            revision = DEFAULT_REVISION
         import torch
         device = device or os.environ.get('PYKOSPACING_V2_DEVICE') or ('cuda' if torch.cuda.is_available() else 'cpu')
         if device == 'cpu':

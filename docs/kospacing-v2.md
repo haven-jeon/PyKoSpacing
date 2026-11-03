@@ -46,7 +46,7 @@ there.
 |---|---|---|---|
 | `backend='v2'` | | `'v1'` | Selects KoSpacing v2 |
 | `checkpoint` | `PYKOSPACING_V2_CHECKPOINT` | `gogamza/kotag-0.8b` | Hugging Face repo id, or a local checkpoint directory |
-| `revision` | `PYKOSPACING_V2_REVISION` | latest on `main` | Repo branch, tag or commit to use |
+| `revision` | `PYKOSPACING_V2_REVISION` | `v1.0` for `gogamza/kotag-0.8b`, latest on `main` for other repos | Repo branch, tag or commit to use |
 | `device` | `PYKOSPACING_V2_DEVICE` | `'cuda'` if available, else `'cpu'` | Where the model runs |
 | `threads` | | torch default | CPU threads (CPU only) |
 | `token_budget` | | 32768 | Padded tokens per forward pass; lower it if the GPU runs out of memory |
@@ -55,10 +55,13 @@ there.
 Arguments take precedence over environment variables. A value that starts with `.`, `/` or `~` is always a local
 path; a missing directory raises `FileNotFoundError` instead of trying the Hub.
 
-Pin a revision in production so a new upload does not change your results:
+The default model is pinned: each PyKoSpacing version loads the kotag-0.8b release it was tested with
+(`DEFAULT_REVISION` in `pykospacing/v2.py`, now `v1.0`), so a new upload to the repo does not change your results.
+Pass `revision='main'` to try the newest upload, or pin a revision yourself when you use another repo:
 
 ```python
-spacing = Spacing(backend='v2', checkpoint='gogamza/kotag-0.8b', revision='v1.0')
+spacing = Spacing(backend='v2', revision='main')                                  # newest kotag-0.8b upload
+spacing = Spacing(backend='v2', checkpoint='your/fine-tuned-repo', revision='v1.0')
 ```
 
 ### Methods
@@ -183,6 +186,7 @@ Make the repo public with `hf repos settings gogamza/kotag-0.8b --no-private` on
 
 - Each released checkpoint gets a new tag (`v1.0`, `v1.1`, ...). The tags version kotag-0.8b itself, not the
   KoSpacing v1/v2 naming. Never move a tag; users pin them.
-- Upload a new checkpoint to `main` and tag it. Users who do not pin a revision get the newest one.
+- Upload a new checkpoint to `main` and tag it. PyKoSpacing users keep the tag in `DEFAULT_REVISION` until a
+  PyKoSpacing release moves it; users who pass `revision='main'` get the newest upload.
 - If you change the file format, bump `format_version` and release a PyKoSpacing version that reads it, before
   you upload.
