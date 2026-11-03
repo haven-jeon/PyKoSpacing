@@ -25,6 +25,7 @@ setup(name='pykospacing',
       include_package_data=True,
 
       install_requires=requirements(),
+      extras_require={'v2': ['torch', 'transformers>=5.17', 'safetensors', 'huggingface_hub']},  # tested: torch 2.14, transformers 5.17
 
       entry_points={
           'console_scripts': [

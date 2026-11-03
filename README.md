@@ -25,7 +25,7 @@ Common sense, the first is the right answer.
 `PyKoSpacing` is based on Deep Learning model trained from large corpus(more than 100 million NEWS articles from [Chan-Yub Park](https://github.com/mrchypark)). 
 
 
-#### Performance
+#### Performance (KoSpacing v1)
 
 | Test Set  | Accuracy | 
 |---|---|
@@ -168,12 +168,85 @@ Examples of `ignore` parameter
 "김형호 영화시장 분석가는 '1987'의 네이버 영화 정보 네티즌 10점 평에서 언급된 단어들을 지난해 12월 27일부터 올해 1월 10일까지 통계 프로그램 R과 KoNLP 패키지로 텍스트마이닝하여 분석했다."
 ```
 
-#### Model Architecture
+#### KoSpacing v1 and KoSpacing v2
+
+PyKoSpacing has two models.
+
+- **KoSpacing v1** (`backend='v1'`, default): the original TensorFlow model described below. Small and fast on CPU.
+- **KoSpacing v2** (`backend='v2'`, experimental): an instruction-following sequence tagger, Qwen3.5-0.8B with a
+  per-character readout, published as [gogamza/kotag-0.8b](https://huggingface.co/gogamza/kotag-0.8b). Besides spacing, it corrects spacing that is already there (`fix()`), gives per-character
+  probabilities (`space_probs()`), and spaces a list of strings as one batch. It needs no TensorFlow.
+
+```python
+>>> from pykospacing import Spacing
+>>> spacing = Spacing(backend='v2')        # downloads gogamza/kotag-0.8b; checkpoint= takes another repo or a directory
+>>> spacing('아버지가방에들어가신다')
+'아버지가 방에 들어가신다'
+>>> spacing.fix('오늘은날씨가 정말좋 네요. 산책 가실분?')       # keeps the spaces that are right
+'오늘은 날씨가 정말 좋네요. 산책 가실분?'
+>>> spacing(['밥먹었어', '오늘날씨가좋다'])                     # batch
+>>> spacing.space_probs('아버지가방에')                          # [(char, P(space after)), ...]
+```
+
+Install the v2 dependencies with `pip install "pykospacing[v2]"`. The model is downloaded from
+`gogamza/kotag-0.8b` on first use, or `checkpoint=` gives another repo id or a local directory. Setup, offline use and CPU/GPU notes:
+[docs/kospacing-v2.md](docs/kospacing-v2.md).
+
+Word F1 on the kospacing test sets, all test sentences (higher is better):
+
+| Test set | KoSpacing v1 | KoSpacing v2 |
+|---|---|---|
+| Wikipedia sentences, spaces removed | 0.824 | **0.847** |
+| KLUE-NER validation (news, reviews), spaces removed | **0.788** | 0.728 |
+| KOLD comments, spaces removed (gold is the writer's own spacing) | **0.630** | 0.588 |
+| Wikipedia with noisy spacing (15% of spaces dropped, 6% added), v2 `fix()` | 0.820 | **0.919** |
+| same, whole sentence correct | 0.264 | **0.516** |
+
+On the noisy-spacing rows v1 is scored in its best mode: spaces removed, then spaced again. Passing the noisy text as
+is gives 0.730 / 0.140, because v1 trusts the existing spaces.
+
+| | KoSpacing v1 | KoSpacing v2 |
+|---|---|---|
+| Model size | 2.4 MB | 1.7 GB |
+| Runs on | CPU | GPU recommended |
+| Needs | TensorFlow | PyTorch, transformers, safetensors, huggingface_hub |
+
+Speed (`scripts/bench_pykospacing.py` in kospacing; test sentences of 43 to 50 characters on average, spaces removed;
+NVIDIA GB10 with a 20-core Arm CPU, 10x Cortex-X925 + 10x Cortex-A725):
+
+| | v1 on CPU | v2 on CPU | v2 on GPU |
+|---|---|---|---|
+| One sentence per call, median latency | 11 ms | 1,150 ms | 18 ms |
+| One sentence per call, throughput | 83 sentences/s (4,100 chars/s) | 0.83 sentences/s (36 chars/s) | 55 sentences/s (2,800 chars/s) |
+| A list in one call, throughput | – | 0.97 sentences/s (48 chars/s) | 69 sentences/s (3,500 chars/s) |
+| Model load | 1.5 s | 4.8 s | 13.7 s (with CUDA start-up) |
+
+- v1 takes one string per call.
+- On CPU, v2 runs in float32 with PyTorch's reference linear-attention code (the fast kernels are GPU-only).
+  More torch threads barely help (8: 1,150 ms, 20: 1,120 ms). On GPU it runs in bfloat16; CPU and GPU outputs
+  agreed on 49 of 50 test sentences.
+- On GPU, v2 is about 65 times faster than on CPU, and a single call takes about as long as v1 on CPU (18 ms vs 11 ms).
+  Measured with `flash-linear-attention` installed and without `causal_conv1d` (transformers then uses PyTorch code
+  for the short convolutions).
+- v2 on CPU is about 100 times slower than v1. Use it on a GPU, or where its spacing correction matters more than speed.
+
+`ignore=` applies to v1 only: v2 reads Latin letters, digits and symbols directly.
+Tests: `python -m unittest tests.test_v2`. The model tests run when `PYKOSPACING_V2_CHECKPOINT` is set.
+
+#### Model Architecture (KoSpacing v1)
 
 ![](kospacing_arch.png)
 
+#### Model Architecture (KoSpacing v2)
 
-#### For Training
+![](kospacing_v2_arch.png)
+
+The prompt states the question and the options, then repeats the input one character per token. One forward pass of
+the Qwen3.5-0.8B backbone gives a hidden state at each repeated character; a readout over the option codes scores the
+options there (probabilities above: `gogamza/kotag-0.8b` v1.0).
+
+
+#### For Training (KoSpacing v1)
 
 - Training code uses an architecture that is more advanced than PyKoSpacing, but also contains the learning logic of PyKoSpacing.
   - https://github.com/haven-jeon/Train_KoSpacing
