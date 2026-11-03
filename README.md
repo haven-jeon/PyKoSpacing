@@ -188,7 +188,7 @@ PyKoSpacing has two models.
 >>> spacing.space_probs('아버지가방에')                          # [(char, P(space after)), ...]
 ```
 
-Install the v2 dependencies with `pip install "pykospacing[v2]"`. The model is downloaded from
+Install with the v2 dependencies: `pip install "pykospacing[v2] @ git+https://github.com/haven-jeon/PyKoSpacing.git"`. The model is downloaded from
 `gogamza/kotag-0.8b` on first use, or `checkpoint=` gives another repo id or a local directory. Setup, offline use and CPU/GPU notes:
 [docs/kospacing-v2.md](docs/kospacing-v2.md).
 

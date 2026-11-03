@@ -11,7 +11,8 @@ sequence tagger; PyKoSpacing uses it for spacing under the name KoSpacing v2. It
 ## 1. Install
 
 ```bash
-pip install "pykospacing[v2]"         # torch, transformers>=5.17, safetensors, huggingface_hub
+pip install "pykospacing[v2] @ git+https://github.com/haven-jeon/PyKoSpacing.git"
+# torch, transformers>=5.17, safetensors, huggingface_hub; add @v0.6.1 to the URL to pin a release
 ```
 
 - v2 does not import TensorFlow. Installing only the v2 extras is enough if you never use v1.

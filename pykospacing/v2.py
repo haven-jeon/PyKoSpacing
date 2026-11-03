@@ -4,7 +4,7 @@
 One model labels every character of the input in a single forward pass. The spacing and spacing-correction prompts
 below are fixed wordings the model was trained on, so results match the "seen" columns of the kospacing evaluation.
 
-Needs torch, transformers, safetensors and huggingface_hub (pip install pykospacing[v2]); TensorFlow is not used.
+Needs torch, transformers, safetensors and huggingface_hub (the [v2] extras of pykospacing, installed from GitHub); TensorFlow is not used.
 A checkpoint is a local directory or a Hugging Face model repo id, by default gogamza/kotag-0.8b at tag v1.0;
 see docs/kospacing-v2.md.
 """
