@@ -235,11 +235,11 @@ Tests: `python -m unittest tests.test_v2`. The model tests run when `PYKOSPACING
 
 #### Model Architecture (KoSpacing v1)
 
-![](kospacing_arch.png)
+![KoSpacing v1 architecture](https://raw.githubusercontent.com/haven-jeon/PyKoSpacing/master/kospacing_arch.png)
 
 #### Model Architecture (KoSpacing v2)
 
-![](kospacing_v2_arch.png)
+![KoSpacing v2 architecture](https://raw.githubusercontent.com/haven-jeon/PyKoSpacing/master/kospacing_v2_arch.png)
 
 The prompt states the question and the options, then repeats the input one character per token. One forward pass of
 the Qwen3.5-0.8B backbone gives a hidden state at each repeated character; a readout over the option codes scores the
