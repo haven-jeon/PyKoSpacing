@@ -6,6 +6,13 @@ Python package for automatic Korean word spacing.
 R verson can be found [here](https://github.com/haven-jeon/KoSpacing).
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
+[![Hugging Face: kotag-0.8B](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-kotag--0.8B-yellow)](https://huggingface.co/gogamza/kotag-0.8b)
+
+> [!TIP]
+> **New: KoSpacing v2.** An optional LLM-based backend, `Spacing(backend='v2')`, built on
+> [kotag-0.8B](https://huggingface.co/gogamza/kotag-0.8b). It is more accurate than v1 on 3 of 4 test sets, fixes
+> spacing that is already there, and gives per-character probabilities.
+> **[See KoSpacing v1 and KoSpacing v2 →](#kospacing-v1-and-kospacing-v2)**
 
 
 #### Introduction
