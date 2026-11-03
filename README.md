@@ -192,15 +192,15 @@ Install with the v2 dependencies: `pip install "pykospacing[v2] @ git+https://gi
 `gogamza/kotag-0.8b` on first use, or `checkpoint=` gives another repo id or a local directory. Setup, offline use and CPU/GPU notes:
 [docs/kospacing-v2.md](docs/kospacing-v2.md).
 
-Word F1 on the kospacing test sets, all test sentences (higher is better):
+Word F1 on the kospacing test sets, all test sentences (higher is better; KoSpacing v2 is `gogamza/kotag-0.8b` v1.0):
 
 | Test set | KoSpacing v1 | KoSpacing v2 |
 |---|---|---|
-| Wikipedia sentences, spaces removed | 0.824 | **0.847** |
-| KLUE-NER validation (news, reviews), spaces removed | **0.788** | 0.728 |
-| KOLD comments, spaces removed (gold is the writer's own spacing) | **0.630** | 0.588 |
+| Wikipedia sentences, spaces removed | 0.824 | **0.841** |
+| KLUE-NER validation (news, reviews), spaces removed | **0.788** | 0.754 |
+| KOLD comments, spaces removed (gold is the writer's own spacing) | 0.630 | **0.684** |
 | Wikipedia with noisy spacing (15% of spaces dropped, 6% added), v2 `fix()` | 0.820 | **0.919** |
-| same, whole sentence correct | 0.264 | **0.516** |
+| same, whole sentence correct | 0.264 | **0.514** |
 
 On the noisy-spacing rows v1 is scored in its best mode: spaces removed, then spaced again. Passing the noisy text as
 is gives 0.730 / 0.140, because v1 trusts the existing spaces.
@@ -229,6 +229,20 @@ NVIDIA GB10 with a 20-core Arm CPU, 10x Cortex-X925 + 10x Cortex-A725):
   Measured with `flash-linear-attention` installed and without `causal_conv1d` (transformers then uses PyTorch code
   for the short convolutions).
 - v2 on CPU is about 100 times slower than v1. Use it on a GPU, or where its spacing correction matters more than speed.
+
+Why a tagger and not a chat model asked to write the answer: the same word spacing by the base model Qwen3.5-0.8B
+without fine-tuning, which has to generate its answer token by token (`scripts/bench_generative.py` in kospacing; 30
+test sentences of about 58 characters, one at a time, same GB10 GPU, greedy decoding with transformers, about 14 ms per
+generated token):
+
+| Approach | Latency per sentence | Generated tokens | Word F1 |
+|---|---|---|---|
+| KoSpacing v2: one forward pass, no generation | **19 ms** | 0 | **0.817** |
+| Qwen3.5-0.8B, writes the spaced sentence | 596 ms | 48 | 0.326 |
+| Qwen3.5-0.8B, writes JSON labels (`{"labels": [0, 1, ...]}`) | 7,077 ms | 422 | 0.006 (4 of 30 valid) |
+
+Generation time grows with the length of the answer, and one label per character makes it long; KoSpacing v2 reads
+every label from one forward pass.
 
 `ignore=` applies to v1 only: v2 reads Latin letters, digits and symbols directly.
 Tests: `python -m unittest tests.test_v2`. The model tests run when `PYKOSPACING_V2_CHECKPOINT` is set.
