@@ -237,6 +237,14 @@ Tests: `python -m unittest tests.test_v2`. The model tests run when `PYKOSPACING
 
 ![](kospacing_arch.png)
 
+#### Model Architecture (KoSpacing v2)
+
+![](kospacing_v2_arch.png)
+
+The prompt states the question and the options, then repeats the input one character per token. One forward pass of
+the Qwen3.5-0.8B backbone gives a hidden state at each repeated character; a readout over the option codes scores the
+options there (probabilities above: `gogamza/kotag-0.8b` v1.0).
+
 
 #### For Training (KoSpacing v1)
 
