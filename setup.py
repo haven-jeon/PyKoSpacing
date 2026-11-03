@@ -12,8 +12,8 @@ def requirements():
     return open_req('requirements.txt')
 
 setup(name='pykospacing',
-      python_requires='>=3.6',
-      version=0.5,
+      python_requires='>=3.9',  # importlib.resources.files; TensorFlow >= 2.16 needs 3.9 too
+      version='0.6',
       url='https://github.com/haven-jeon/PyKoSpacing',
       license='GPL-3',
       author='Heewon Jeon',
