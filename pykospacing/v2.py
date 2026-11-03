@@ -75,6 +75,7 @@ class TagReadout:
         if config.get('format_version') != FORMAT_VERSION:
             raise ValueError(f"KoSpacing v2: unsupported checkpoint format {config.get('format_version')}")
         self.codes = config['codes']
+        self.temperature = float(config.get('temperature', 1.0))  # calibrates the probabilities; labels do not change
         if threads:
             torch.set_num_threads(threads)
         torch.backends.cuda.enable_cudnn_sdp(False)
@@ -149,7 +150,7 @@ class TagReadout:
             hidden = self.backbone(input_ids=input_ids.to(self.device), attention_mask=attention.to(self.device),
                                    use_cache=False).last_hidden_state
             logits = self.readout(hidden[torch.tensor(rows, device=self.device), torch.tensor(positions, device=self.device)])
-            probabilities = logits.float()[:, :count].softmax(-1).cpu().tolist()
+            probabilities = (logits.float()[:, :count] / self.temperature).softmax(-1).cpu().tolist()
         cursor = 0
         for index in batch:
             n = len(encoded[index][1])
