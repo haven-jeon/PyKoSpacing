@@ -5,7 +5,7 @@ One model labels every character of the input in a single forward pass. The spac
 below are fixed wordings the model was trained on, so results match the "seen" columns of the kospacing evaluation.
 
 Needs torch, transformers, safetensors and huggingface_hub (pip install pykospacing[v2]); TensorFlow is not used.
-A checkpoint is a local directory or a Hugging Face model repo id, by default gogamza/seqtagger-0.8b;
+A checkpoint is a local directory or a Hugging Face model repo id, by default gogamza/kotag-0.8b;
 see docs/kospacing-v2.md.
 """
 
@@ -24,7 +24,7 @@ FIX_QUESTION = {"type": "tag", "unit": "char", "instructions": "잘못된 띄어
                              "D": "이 글자 뒤의 공백을 지움"}}
 MAX_CHARS = 400          # characters per model input; longer lines are split at sentence ends, then spaces
 SENTENCE_END = re.compile(r'[.!?…。]+["\'”’)\]]*')
-DEFAULT_REPO = 'gogamza/seqtagger-0.8b'
+DEFAULT_REPO = 'gogamza/kotag-0.8b'
 MAX_OPTIONS = 255
 FORMAT_VERSION = 1
 SYSTEM = ("Label each unit of the input using the question and option descriptions. "

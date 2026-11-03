@@ -174,12 +174,12 @@ PyKoSpacing has two models.
 
 - **KoSpacing v1** (`backend='v1'`, default): the original TensorFlow model described below. Small and fast on CPU.
 - **KoSpacing v2** (`backend='v2'`, experimental): an instruction-following sequence tagger, Qwen3.5-0.8B with a
-  per-character readout, published as [gogamza/seqtagger-0.8b](https://huggingface.co/gogamza/seqtagger-0.8b). Besides spacing, it corrects spacing that is already there (`fix()`), gives per-character
+  per-character readout, published as [gogamza/kotag-0.8b](https://huggingface.co/gogamza/kotag-0.8b). Besides spacing, it corrects spacing that is already there (`fix()`), gives per-character
   probabilities (`space_probs()`), and spaces a list of strings as one batch. It needs no TensorFlow.
 
 ```python
 >>> from pykospacing import Spacing
->>> spacing = Spacing(backend='v2')        # downloads gogamza/seqtagger-0.8b; checkpoint= takes another repo or a directory
+>>> spacing = Spacing(backend='v2')        # downloads gogamza/kotag-0.8b; checkpoint= takes another repo or a directory
 >>> spacing('아버지가방에들어가신다')
 '아버지가 방에 들어가신다'
 >>> spacing.fix('오늘은날씨가 정말좋 네요. 산책 가실분?')       # keeps the spaces that are right
@@ -189,7 +189,7 @@ PyKoSpacing has two models.
 ```
 
 Install the v2 dependencies with `pip install "pykospacing[v2]"`. The model is downloaded from
-`gogamza/seqtagger-0.8b` on first use, or `checkpoint=` gives another repo id or a local directory. Setup, offline use, CPU/GPU notes and how to publish a checkpoint:
+`gogamza/kotag-0.8b` on first use, or `checkpoint=` gives another repo id or a local directory. Setup, offline use, CPU/GPU notes and how to publish a checkpoint:
 [docs/kospacing-v2.md](docs/kospacing-v2.md).
 
 Word F1 on the kospacing test sets, all test sentences (higher is better):

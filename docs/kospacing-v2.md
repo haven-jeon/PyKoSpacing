@@ -5,7 +5,7 @@ input (`Spacing(backend='v2')`). KoSpacing v1, the original TensorFlow model, st
 This guide covers installing v2, pointing it at a checkpoint, running it on GPU or CPU, and, for maintainers,
 publishing a checkpoint to the Hugging Face Hub.
 
-The model is published on the Hugging Face Hub as **`gogamza/seqtagger-0.8b`**, a general instruction-following
+The model is published on the Hugging Face Hub as **`gogamza/kotag-0.8b`**, a general instruction-following
 sequence tagger; PyKoSpacing uses it for spacing under the name KoSpacing v2. It is the default checkpoint of
 `backend='v2'`. (The repo is not created yet; until it is, pass a local checkpoint directory.)
 
@@ -30,14 +30,14 @@ pip install "pykospacing[v2]"         # torch, transformers>=5.17, safetensors, 
 ```python
 from pykospacing import Spacing
 
-spacing = Spacing(backend='v2')                  # gogamza/seqtagger-0.8b
+spacing = Spacing(backend='v2')                  # gogamza/kotag-0.8b
 spacing('아버지가방에들어가신다')                    # '아버지가 방에 들어가신다'
 spacing.fix('오늘은날씨가 정말좋 네요.')             # '오늘은 날씨가 정말 좋네요.'
 spacing(['밥먹었어', '오늘날씨가좋다'])               # a list is spaced as one batch
 spacing.space_probs('아버지가방에')                 # [('아', 0.0), ..., ('가', 0.79), ...]
 ```
 
-The first call downloads `gogamza/seqtagger-0.8b` (about 1.7 GB) to the Hugging Face cache; later calls load it from
+The first call downloads `gogamza/kotag-0.8b` (about 1.7 GB) to the Hugging Face cache; later calls load it from
 there.
 
 ## 3. Options
@@ -45,7 +45,7 @@ there.
 | `Spacing(...)` argument | Environment variable | Default | Meaning |
 |---|---|---|---|
 | `backend='v2'` | | `'v1'` | Selects KoSpacing v2 |
-| `checkpoint` | `PYKOSPACING_V2_CHECKPOINT` | `gogamza/seqtagger-0.8b` | Hugging Face repo id, or a local checkpoint directory |
+| `checkpoint` | `PYKOSPACING_V2_CHECKPOINT` | `gogamza/kotag-0.8b` | Hugging Face repo id, or a local checkpoint directory |
 | `revision` | `PYKOSPACING_V2_REVISION` | latest on `main` | Repo branch, tag or commit to use |
 | `device` | `PYKOSPACING_V2_DEVICE` | `'cuda'` if available, else `'cpu'` | Where the model runs |
 | `threads` | | torch default | CPU threads (CPU only) |
@@ -58,7 +58,7 @@ path; a missing directory raises `FileNotFoundError` instead of trying the Hub.
 Pin a revision in production so a new upload does not change your results:
 
 ```python
-spacing = Spacing(backend='v2', checkpoint='gogamza/seqtagger-0.8b', revision='v1.0')
+spacing = Spacing(backend='v2', checkpoint='gogamza/kotag-0.8b', revision='v1.0')
 ```
 
 ### Methods
@@ -78,11 +78,11 @@ Inputs longer than 400 characters are split after a sentence end (or else a spac
 Download once, then load from the directory:
 
 ```bash
-hf download gogamza/seqtagger-0.8b --revision v1.0 --local-dir ./seqtagger-0.8b
+hf download gogamza/kotag-0.8b --revision v1.0 --local-dir ./kotag-0.8b
 ```
 
 ```python
-spacing = Spacing(backend='v2', checkpoint='./seqtagger-0.8b')
+spacing = Spacing(backend='v2', checkpoint='./kotag-0.8b')
 ```
 
 Or keep using the repo id with the cache only: set `HF_HUB_OFFLINE=1`. If the checkpoint is not in the cache,
@@ -112,7 +112,7 @@ For a private repo, log in first (`hf auth login`) or set `HF_TOKEN`.
 
 | Symptom | Cause and fix |
 |---|---|
-| `RepositoryNotFoundError` for `gogamza/seqtagger-0.8b` | The repo is not published yet, or is private: pass a local `checkpoint=` directory, or log in (section 4). |
+| `RepositoryNotFoundError` for `gogamza/kotag-0.8b` | The repo is not published yet, or is private: pass a local `checkpoint=` directory, or log in (section 4). |
 | `LocalEntryNotFoundError` | `HF_HUB_OFFLINE=1` and the checkpoint is not cached: download it first (section 4). |
 | `RuntimeError: 0 active drivers` (Triton) | A CPU model was built after the GPU kernels were bound: build the CPU model first, or use a separate process. |
 | `ModuleNotFoundError: ...qwen3_5` | transformers is too old for Qwen3.5: `pip install "transformers>=5.17"`. |
@@ -122,8 +122,8 @@ For a private repo, log in first (`hf auth login`) or set `HF_TOKEN`.
 
 ## 7. For maintainers: publishing a checkpoint
 
-Checkpoints are trained in the kospacing project. The repo's own files (model card template, `seqtagger.py`,
-`PROMPT.md`, `examples/`) live in kospacing `hf/seqtagger-0.8b/`, and `scripts/export_hf.py` combines them with a
+Checkpoints are trained in the kospacing project. The repo's own files (model card template, `kotag.py`,
+`PROMPT.md`, `examples/`) live in kospacing `hf/kotag-0.8b/`, and `scripts/export_hf.py` combines them with a
 checkpoint into the folder to upload.
 
 ### 7.1 Files
@@ -134,8 +134,8 @@ checkpoint into the folder to upload.
 | `readout.safetensors` | `Linear(hidden, 255)` readout over single-token option codes |
 | `decision_config.json` | option codes and their token ids (`format_version` 1) |
 | `tokenizer.json`, `tokenizer_config.json`, `chat_template.jinja` | tokenizer and chat template |
-| `README.md` | model card, rendered from the template in kospacing `hf/seqtagger-0.8b/README.md.tmpl` |
-| `seqtagger.py`, `PROMPT.md`, `examples/` | standalone inference code for any tagging question, prompt format, examples |
+| `README.md` | model card, rendered from the template in kospacing `hf/kotag-0.8b/README.md.tmpl` |
+| `kotag.py`, `PROMPT.md`, `examples/` | standalone inference code for any tagging question, prompt format, examples |
 
 `pykospacing/v2.py` reads exactly these files. It refuses a `decision_config.json` whose `format_version` it does not
 know, so a new format needs a new PyKoSpacing release.
@@ -155,33 +155,33 @@ know, so a new format needs a new PyKoSpacing release.
 
    ```bash
    uv run --project jeff python -I scripts/export_hf.py --checkpoint runs/<run>/final --tag <run> \
-       --repo-id gogamza/seqtagger-0.8b --license <license> --output exports/seqtagger-0.8b
+       --repo-id gogamza/kotag-0.8b --license <license> --output exports/kotag-0.8b
    ```
 
    The script replays the run's sampling to fill the task table, loads the exported folder with its own
-   `seqtagger.py` and with PyKoSpacing, and stops if either spaces differently from the source checkpoint.
+   `kotag.py` and with PyKoSpacing, and stops if either spaces differently from the source checkpoint.
    Read the generated `README.md`; results not measured yet are shown as `–`.
 
 ### 7.3 Upload
 
 ```bash
 hf auth login                                                     # a token with write access
-hf repos create gogamza/seqtagger-0.8b --private                   # private until checked
-hf upload gogamza/seqtagger-0.8b exports/seqtagger-0.8b . --commit-message "seqtagger-0.8b (<run>)"
-hf repos tag create gogamza/seqtagger-0.8b v1.0 -m "<run>"         # the revision users pin
+hf repos create gogamza/kotag-0.8b --private                   # private until checked
+hf upload gogamza/kotag-0.8b exports/kotag-0.8b . --commit-message "kotag-0.8b (<run>)"
+hf repos tag create gogamza/kotag-0.8b v1.0 -m "<run>"         # the revision users pin
 ```
 
 Then check it from a clean environment:
 
 ```bash
-python -c "from pykospacing import Spacing; print(Spacing(backend='v2', checkpoint='gogamza/seqtagger-0.8b', revision='v1.0')('아버지가방에들어가신다'))"
+python -c "from pykospacing import Spacing; print(Spacing(backend='v2', checkpoint='gogamza/kotag-0.8b', revision='v1.0')('아버지가방에들어가신다'))"
 ```
 
-Make the repo public with `hf repos settings gogamza/seqtagger-0.8b --no-private` once it works.
+Make the repo public with `hf repos settings gogamza/kotag-0.8b --no-private` once it works.
 
 ### 7.4 Versioning
 
-- Each released checkpoint gets a new tag (`v1.0`, `v1.1`, ...). The tags version seqtagger-0.8b itself, not the
+- Each released checkpoint gets a new tag (`v1.0`, `v1.1`, ...). The tags version kotag-0.8b itself, not the
   KoSpacing v1/v2 naming. Never move a tag; users pin them.
 - Upload a new checkpoint to `main` and tag it. Users who do not pin a revision get the newest one.
 - If you change the file format, bump `format_version` and release a PyKoSpacing version that reads it, before
