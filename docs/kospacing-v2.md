@@ -46,7 +46,7 @@ there.
 |---|---|---|---|
 | `backend='v2'` | | `'v1'` | Selects KoSpacing v2 |
 | `checkpoint` | `PYKOSPACING_V2_CHECKPOINT` | `gogamza/kotag-0.8b` | Hugging Face repo id, or a local checkpoint directory |
-| `revision` | `PYKOSPACING_V2_REVISION` | `v1.0` for `gogamza/kotag-0.8b`, latest on `main` for other repos | Repo branch, tag or commit to use |
+| `revision` | `PYKOSPACING_V2_REVISION` | `v1.1` for `gogamza/kotag-0.8b`, latest on `main` for other repos | Repo branch, tag or commit to use |
 | `device` | `PYKOSPACING_V2_DEVICE` | `'cuda'` if available, else `'cpu'` | Where the model runs |
 | `threads` | | torch default | CPU threads (CPU only) |
 | `token_budget` | | 32768 | Padded tokens per forward pass; lower it if the GPU runs out of memory |
@@ -56,7 +56,7 @@ Arguments take precedence over environment variables. A value that starts with `
 path; a missing directory raises `FileNotFoundError` instead of trying the Hub.
 
 The default model is pinned: each PyKoSpacing version loads the kotag-0.8B release it was tested with
-(`DEFAULT_REVISION` in `pykospacing/v2.py`, now `v1.0`), so a new upload to the repo does not change your results.
+(`DEFAULT_REVISION` in `pykospacing/v2.py`, now `v1.1`), so a new upload to the repo does not change your results.
 Pass `revision='main'` to try the newest upload, or pin a revision yourself when you use another repo:
 
 ```python
@@ -81,7 +81,7 @@ Inputs longer than 400 characters are split after a sentence end (or else a spac
 Download once, then load from the directory:
 
 ```bash
-hf download gogamza/kotag-0.8b --revision v1.0 --local-dir ./kotag-0.8b
+hf download gogamza/kotag-0.8b --revision v1.1 --local-dir ./kotag-0.8b
 ```
 
 ```python
