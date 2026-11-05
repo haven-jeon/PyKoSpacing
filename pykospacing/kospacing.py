@@ -35,7 +35,7 @@ class Spacing:
         """backend='v1' is KoSpacing v1, the original TensorFlow model. backend='v2' is KoSpacing v2, the
         instruction-following tag model (pykospacing/v2.py, docs/kospacing-v2.md): checkpoint is a local directory or a
         Hugging Face model repo id (default gogamza/kotag-0.8b, or PYKOSPACING_V2_CHECKPOINT), revision pins the repo version (default v1.1 for that repo), device is 'cuda' or
-        'cpu'; v2_options (threads, token_budget) go to KoSpacingV2."""
+        'cpu'; v2_options (threads, token_budget, dtype, prefix_cache) go to KoSpacingV2."""
         if backend == 'v1' and (checkpoint or device or revision or v2_options):
             raise ValueError("checkpoint, device, revision and v2 options are for backend='v2'")
         if backend not in BACKENDS:

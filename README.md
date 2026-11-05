@@ -221,21 +221,24 @@ is gives 0.730 / 0.140, because v1 trusts the existing spaces.
 Speed (`scripts/bench_pykospacing.py` in kospacing; test sentences of 43 to 50 characters on average, spaces removed;
 NVIDIA GB10 with a 20-core Arm CPU, 10x Cortex-X925 + 10x Cortex-A725):
 
-| | v1 on CPU | v2 on CPU | v2 on GPU |
-|---|---|---|---|
-| One sentence per call, median latency | 11 ms | 1,150 ms | 18 ms |
-| One sentence per call, throughput | 83 sentences/s (4,100 chars/s) | 0.83 sentences/s (36 chars/s) | 55 sentences/s (2,800 chars/s) |
-| A list in one call, throughput | – | 0.97 sentences/s (48 chars/s) | 69 sentences/s (3,500 chars/s) |
-| Model load | 1.5 s | 4.8 s | 13.7 s (with CUDA start-up) |
+| | v1 on CPU | v2 on CPU | v2 on CPU, `dtype='bfloat16'` | v2 on GPU |
+|---|---|---|---|---|
+| One sentence per call, median latency | 11 ms | 475 ms | 369 ms | 18 ms |
+| One sentence per call, throughput | 83 sentences/s (4,100 chars/s) | 2.0 sentences/s (87 chars/s) | 2.5 sentences/s (108 chars/s) | 55 sentences/s (2,700 chars/s) |
+| A list in one call, throughput | – | 2.6 sentences/s (129 chars/s) | 4.6 sentences/s (231 chars/s) | 101 sentences/s (5,100 chars/s) |
+| Model load | 1.5 s | 1.9 s | 1.9 s | 11.5 s (with CUDA start-up) |
 
 - v1 takes one string per call.
-- On CPU, v2 runs in float32 with PyTorch's reference linear-attention code (the fast kernels are GPU-only).
-  More torch threads barely help (8: 1,150 ms, 20: 1,120 ms). On GPU it runs in bfloat16; CPU and GPU outputs
-  agreed on 49 of 50 test sentences.
-- On GPU, v2 is about 65 times faster than on CPU, and a single call takes about as long as v1 on CPU (18 ms vs 11 ms).
+- v2 runs the part of the prompt before the text once and reuses it for every sentence (`prefix_cache=True`, the
+  default; same output).
+- On CPU, v2 runs in float32 by default with PyTorch's reference linear-attention code (the fast kernels are
+  GPU-only), measured with `threads=10` (10 was the fastest on this 20-core CPU). `dtype='bfloat16'` is about 1.3
+  times faster on one sentence and 1.8 times on a list; word F1 changed by at most 0.002 on the spacing test sets.
+  On GPU it runs in bfloat16; CPU and GPU outputs agreed on 49 of 50 test sentences.
+- On GPU, v2 is about 25 times faster than on CPU (float32), and a single call takes about as long as v1 on CPU (18 ms vs 11 ms).
   Measured with `flash-linear-attention` installed and without `causal_conv1d` (transformers then uses PyTorch code
   for the short convolutions).
-- v2 on CPU is about 100 times slower than v1. Use it on a GPU, or where its spacing correction matters more than speed.
+- v2 on CPU is about 35 to 45 times slower than v1. Use it on a GPU, or where its spacing correction matters more than speed.
 
 Why a tagger and not a chat model asked to write the answer: the same word spacing by the base model Qwen3.5-0.8B
 without fine-tuning, which has to generate its answer token by token (`scripts/bench_generative.py` in kospacing; 30

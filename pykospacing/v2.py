@@ -9,6 +9,7 @@ A checkpoint is a local directory or a Hugging Face model repo id, by default go
 see docs/kospacing-v2.md.
 """
 
+import copy
 import json
 import os
 import re
@@ -64,7 +65,7 @@ class TagReadout:
     The prompt lists the options under single-token codes (A, B, ...), then the assistant turn repeats the input one
     character at a time; the readout at each character's last token scores the options."""
 
-    def __init__(self, path, device='cuda', threads=None):
+    def __init__(self, path, device='cuda', threads=None, dtype=None):
         import torch
         from safetensors.torch import load_file
         from transformers import AutoTokenizer
@@ -80,7 +81,9 @@ class TagReadout:
             torch.set_num_threads(threads)
         torch.backends.cuda.enable_cudnn_sdp(False)
         self.device = device
-        dtype = torch.bfloat16 if device.startswith(('cuda', 'mps')) else torch.float32
+        if isinstance(dtype, str):
+            dtype = {'bfloat16': torch.bfloat16, 'bf16': torch.bfloat16, 'float32': torch.float32, 'fp32': torch.float32}[dtype]
+        dtype = dtype or (torch.bfloat16 if device.startswith(('cuda', 'mps')) else torch.float32)
         self.tokenizer = AutoTokenizer.from_pretrained(str(path))
         self.backbone = Qwen3_5Model.from_pretrained(str(path), dtype=dtype, attn_implementation='sdpa')
         hidden = self.backbone.config.text_config.hidden_size
@@ -89,6 +92,7 @@ class TagReadout:
         self.backbone.to(device).eval()
         self.readout.to(device).eval()
         self._pieces = {}
+        self._prefix = None  # (token ids, model cache) of the prompt part before the input
 
     def _piece(self, text):
         if text not in self._pieces:
@@ -110,13 +114,30 @@ class TagReadout:
                 positions.append(len(ids) - 1)
         return ids, positions
 
-    def predict(self, texts, question, token_budget=32768):
-        """Per text, per non-space character, the probabilities over the question's options (in criteria order)."""
-        torch = self.torch
+    def shared_length(self, encoded, question):
+        """Prompt tokens before the input that every encoded text shares (the question part; 0 if very short)."""
+        probe = [self.encode(t, question)[0] for t in ("가", "나")]
+        shared = next((i for i, (a, b) in enumerate(zip(*probe)) if a != b), 0)
+        for ids, positions in encoded:
+            shared = min(shared, next((i for i, (a, b) in enumerate(zip(ids, probe[0])) if a != b), len(ids)),
+                         positions[0] if positions else len(ids))
+        return shared if shared >= 16 else 0
+
+    def _prefix_cache(self, ids):
+        if self._prefix is None or self._prefix[0] != ids:
+            with self.torch.inference_mode():
+                out = self.backbone(input_ids=self.torch.tensor([ids], device=self.device), use_cache=True)
+            self._prefix = (ids, out.past_key_values)
+        return self._prefix[1]
+
+    def predict(self, texts, question, token_budget=32768, prefix_cache=True):
+        """Per text, per non-space character, the probabilities over the question's options (in criteria order).
+        prefix_cache: run the question part of the prompt once and reuse it (same probabilities up to rounding)."""
         count = len(question["criteria"])
         if not 2 <= count <= MAX_OPTIONS:
             raise ValueError(f"KoSpacing v2: 2 to {MAX_OPTIONS} options")
         encoded = [self.encode(t, question) for t in texts]
+        shared = self.shared_length(encoded, question) if prefix_cache and encoded else 0
         order = sorted(range(len(texts)), key=lambda i: len(encoded[i][0]))
         results = [None] * len(texts)
         batch, longest = [], 0
@@ -128,27 +149,34 @@ class TagReadout:
                     longest = max(longest, size)
                     continue
             if batch:
-                self._run(batch, encoded, count, results)
+                self._run(batch, encoded, count, results, shared)
             batch, longest = ([index], len(encoded[index][0])) if index is not None else ([], 0)
         return results
 
-    def _run(self, batch, encoded, count, results):
+    def _run(self, batch, encoded, count, results, shared=0):
         torch = self.torch
-        longest = max(len(encoded[i][0]) for i in batch)
+        longest = max(len(encoded[i][0]) for i in batch) - shared
         pad = self.tokenizer.pad_token_id
         input_ids = torch.full((len(batch), longest), pad, dtype=torch.long)
-        attention = torch.zeros((len(batch), longest), dtype=torch.long)
+        attention = torch.zeros((len(batch), shared + longest), dtype=torch.long)
         rows, positions = [], []
         for slot, index in enumerate(batch):
             ids, pos = encoded[index]
-            offset = longest - len(ids)  # left padding
-            input_ids[slot, offset:] = torch.tensor(ids)
-            attention[slot, offset:] = 1
+            ids = ids[shared:]
+            offset = 0 if shared else longest - len(ids)  # right padding after a cached prefix, else left padding
+            input_ids[slot, offset:offset + len(ids)] = torch.tensor(ids)
+            attention[slot, :shared] = 1
+            attention[slot, shared + offset:shared + offset + len(ids)] = 1
             rows += [slot] * len(pos)
-            positions += [offset + p for p in pos]
+            positions += [offset + p - shared for p in pos]
+        cache = None
+        if shared:
+            cache = copy.deepcopy(self._prefix_cache(encoded[batch[0]][0][:shared]))
+            if len(batch) > 1:
+                cache.reorder_cache(torch.zeros(len(batch), dtype=torch.long, device=self.device))
         with torch.inference_mode():
             hidden = self.backbone(input_ids=input_ids.to(self.device), attention_mask=attention.to(self.device),
-                                   use_cache=False).last_hidden_state
+                                   past_key_values=cache, use_cache=cache is not None).last_hidden_state
             logits = self.readout(hidden[torch.tensor(rows, device=self.device), torch.tensor(positions, device=self.device)])
             probabilities = (logits.float()[:, :count] / self.temperature).softmax(-1).cpu().tolist()
         cursor = 0
@@ -176,11 +204,15 @@ def split_long(text, limit=MAX_CHARS):
 
 
 class KoSpacingV2:
-    def __init__(self, checkpoint=None, device=None, token_budget=32768, revision=None, threads=None):
+    def __init__(self, checkpoint=None, device=None, token_budget=32768, revision=None, threads=None, dtype=None,
+                 prefix_cache=True):
         """checkpoint: a local directory or a Hugging Face model repo id (else PYKOSPACING_V2_CHECKPOINT, else
         DEFAULT_REPO);
         revision: branch, tag or commit of the repo (else PYKOSPACING_V2_REVISION, else DEFAULT_REVISION for
-        DEFAULT_REPO and the latest commit for other repos); device: 'cuda' or 'cpu'."""
+        DEFAULT_REPO and the latest commit for other repos); device: 'cuda' or 'cpu';
+        dtype: 'bfloat16' or 'float32' (default bfloat16 on GPU, float32 on CPU; bfloat16 on CPU is faster where the
+        CPU has bf16 instructions, with slightly different results); prefix_cache: run the fixed question part of the
+        prompt once and reuse it (same results, about 1.4x faster on CPU)."""
         checkpoint = checkpoint or os.environ.get('PYKOSPACING_V2_CHECKPOINT') or DEFAULT_REPO
         revision = revision or os.environ.get('PYKOSPACING_V2_REVISION')
         if revision is None and str(checkpoint) == DEFAULT_REPO:
@@ -190,12 +222,13 @@ class KoSpacingV2:
         if device == 'cpu':
             _block_gpu_kernels()
         self.path = resolve_checkpoint(checkpoint, revision)
-        self.model = TagReadout(self.path, device=device, threads=threads)
+        self.model = TagReadout(self.path, device=device, threads=threads, dtype=dtype)
         self.token_budget = token_budget
+        self.prefix_cache = prefix_cache
 
     def _predict(self, texts, question):
         keys = list(question["criteria"])
-        return [[dict(zip(keys, p)) for p in unit] for unit in self.model.predict(texts, question, self.token_budget)]
+        return [[dict(zip(keys, p)) for p in unit] for unit in self.model.predict(texts, question, self.token_budget, self.prefix_cache)]
 
     def space_probs(self, texts):
         """Per text: list of (character, probability that a space follows) over its non-space characters."""

@@ -50,6 +50,8 @@ there.
 | `device` | `PYKOSPACING_V2_DEVICE` | `'cuda'` if available, else `'cpu'` | Where the model runs |
 | `threads` | | torch default | CPU threads (CPU only) |
 | `token_budget` | | 32768 | Padded tokens per forward pass; lower it if the GPU runs out of memory |
+| `dtype` | | `'bfloat16'` on GPU, `'float32'` on CPU | Weight precision; `'bfloat16'` on CPU is faster |
+| `prefix_cache` | | `True` | Run the prompt part before the text once and reuse it (same output) |
 | `rules` | | `[]` | Words never split, as in v1 |
 
 Arguments take precedence over environment variables. A value that starts with `.`, `/` or `~` is always a local
@@ -95,14 +97,16 @@ loading fails with `LocalEntryNotFoundError`. `HF_HOME` moves the cache.
 
 | | GPU | CPU |
 |---|---|---|
-| Precision | bfloat16 | float32 |
-| Weights in memory | about 1.7 GB | about 3.4 GB |
-| One sentence of about 45 characters | about 18 ms | about 1.1 s |
-| A list in one call | about 70 sentences/s | about 1 sentence/s |
+| Precision | bfloat16 | float32 (default) / bfloat16 (`dtype='bfloat16'`) |
+| Weights in memory | about 1.7 GB | about 3.4 GB / 1.7 GB |
+| One sentence of about 45 characters | about 18 ms | about 475 ms / 370 ms |
+| A list in one call | about 100 sentences/s | about 2.6 / 4.6 sentences/s |
 
-- On CPU, v2 is about 100 times slower than v1. Use a GPU for volume work, and pass lists instead of looping over
+- On CPU, v2 is about 35 to 45 times slower than v1. Use a GPU for volume work, and pass lists instead of looping over
   sentences.
-- On CPU, more threads barely help (8 threads: 1,150 ms, 20 threads: 1,120 ms on a 20-core Arm CPU).
+- On CPU, more threads do not always help: on a 20-core Arm CPU (10 fast and 10 slower cores) `threads=10` was the
+  fastest. The time goes to matrix products, so the gain from `dtype='bfloat16'` depends on the CPU's bfloat16
+  support (this one has it). Word F1 with bfloat16 changed by at most 0.002 on the spacing test sets.
 - CPU and GPU agree on almost every sentence (49 of 50 in a test). The differences are borderline spaces, caused by
   float32 vs bfloat16.
 - If `flash-linear-attention` is installed, transformers uses its GPU-only kernels even for a model on the CPU.
