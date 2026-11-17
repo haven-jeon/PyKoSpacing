@@ -199,15 +199,15 @@ Install with the v2 dependencies: `pip install "pykospacing[v2] @ git+https://gi
 `gogamza/kotag-0.8b` on first use, or `checkpoint=` gives another repo id or a local directory. Setup, offline use and CPU/GPU notes:
 [docs/kospacing-v2.md](docs/kospacing-v2.md).
 
-Word F1 on the kospacing test sets, all test sentences (higher is better; KoSpacing v2 is `gogamza/kotag-0.8b` v1.1):
+Word F1 on the kospacing test sets, all test sentences (higher is better; KoSpacing v2 is `gogamza/kotag-0.8b` v1.2):
 
 | Test set | KoSpacing v1 | KoSpacing v2 |
 |---|---|---|
-| Wikipedia sentences, spaces removed | 0.824 | **0.835** |
-| KLUE-NER validation (news, reviews), spaces removed | **0.788** | 0.762 |
-| KOLD comments, spaces removed (gold is the writer's own spacing) | 0.630 | **0.682** |
-| Wikipedia with noisy spacing (15% of spaces dropped, 6% added), v2 `fix()` | 0.820 | **0.917** |
-| same, whole sentence correct | 0.264 | **0.516** |
+| Wikipedia sentences, spaces removed | 0.824 | **0.836** |
+| KLUE-NER validation (news, reviews), spaces removed | **0.788** | 0.766 |
+| KOLD comments, spaces removed (gold is the writer's own spacing) | 0.630 | **0.690** |
+| Wikipedia with noisy spacing (15% of spaces dropped, 6% added), v2 `fix()` | 0.820 | **0.919** |
+| same, whole sentence correct | 0.264 | **0.513** |
 
 On the noisy-spacing rows v1 is scored in its best mode: spaces removed, then spaced again. Passing the noisy text as
 is gives 0.730 / 0.140, because v1 trusts the existing spaces.
@@ -247,9 +247,9 @@ generated token):
 
 | Approach | Latency per sentence | Generated tokens | Word F1 |
 |---|---|---|---|
-| KoSpacing v2: one forward pass, no generation | **19 ms** | 0 | **0.818** |
-| Qwen3.5-0.8B, writes the spaced sentence | 605 ms | 48 | 0.326 |
-| Qwen3.5-0.8B, writes JSON labels (`{"labels": [0, 1, ...]}`) | 7,174 ms | 422 | 0.006 (4 of 30 valid) |
+| KoSpacing v2: one forward pass, no generation | **19 ms** | 0 | **0.797** |
+| Qwen3.5-0.8B, writes the spaced sentence | 582 ms | 48 | 0.326 |
+| Qwen3.5-0.8B, writes JSON labels (`{"labels": [0, 1, ...]}`) | 6,925 ms | 422 | 0.006 (4 of 30 valid) |
 
 Generation time grows with the length of the answer, and one label per character makes it long; KoSpacing v2 reads
 every label from one forward pass.
@@ -267,7 +267,7 @@ Tests: `python -m unittest tests.test_v2`. The model tests run when `PYKOSPACING
 
 The prompt states the question and the options, then repeats the input one character per token. One forward pass of
 the Qwen3.5-0.8B backbone gives a hidden state at each repeated character; a readout over the option codes scores the
-options there (probabilities above: `gogamza/kotag-0.8b` v1.0).
+options there (probabilities above: `gogamza/kotag-0.8b` v1.2).
 
 
 #### For Training (KoSpacing v1)
