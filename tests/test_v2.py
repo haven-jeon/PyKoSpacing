@@ -80,6 +80,45 @@ class V2Test(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.spacing('가나다', ignore='pre')
 
+    def test_spell(self):
+        self.assertEqual(
+            self.spacing.spell('한국어 공부를 항랑 열심히 해야 되요.'),
+            '한국어 공부를 항상 열심히 해야 돼요.',
+        )
+        clean = '한국어 공부를 항상 열심히 해야 돼요.'
+        self.assertEqual(self.spacing.spell(clean), clean)
+
+    def test_spell_batch_and_edits(self):
+        from pykospacing.v2 import SpellEdit, SpellResult
+        results = self.spacing.spell(
+            ['한국어 공부를 항랑 열심히 해야 되요.', '한국어 공부를 항상 열심히 해야 돼요.'],
+            return_edits=True,
+        )
+        self.assertEqual(len(results), 2)
+        self.assertIsInstance(results[0], SpellResult)
+        self.assertEqual(results[0].corrected, '한국어 공부를 항상 열심히 해야 돼요.')
+        self.assertGreaterEqual(len(results[0].edits), 2)
+        self.assertIsInstance(results[0].edits[0], SpellEdit)
+        self.assertEqual(results[1].edits, [])
+
+    def test_spell_fix_spacing(self):
+        res = self.spacing.spell('지금집에 가도 되요.', fix_spacing=True)
+        self.assertEqual(res, '지금 집에 가도 돼요.')
+
+    def test_spell_conservative(self):
+        text = '한국어 공부를 항랑 열심히 해야 되요.'
+        self.assertEqual(self.spacing.spell(text, keep_bias=30.0), text)
+        self.assertEqual(self.spacing.spell(text, detect_threshold=0.999), text)
+
+    def test_spell_empty_and_multiline(self):
+        self.assertEqual(self.spacing.spell(''), '')
+        multi = '한국어 공부를 항랑 열심히 해야 되요.\n팀장님께 결제 서류를 올렸다.'
+        corrected = self.spacing.spell(multi)
+        self.assertEqual(len(corrected.split('\n')), 2)
+        self.assertIn('항상', corrected)
+        self.assertIn('돼요.', corrected)
+        self.assertIn('결재', corrected)
+
 
 class V1Test(unittest.TestCase):
     def test_v2_options_need_v2(self):
@@ -99,6 +138,13 @@ class V1Test(unittest.TestCase):
         spacing._v2 = None
         with self.assertRaises(NotImplementedError):
             spacing.fix('가나다')
+
+    def test_spell_needs_v2(self):
+        from pykospacing.kospacing import Spacing
+        spacing = Spacing.__new__(Spacing)
+        spacing._v2 = None
+        with self.assertRaises(NotImplementedError):
+            spacing.spell('가나다')
 
 
 if __name__ == '__main__':

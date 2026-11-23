@@ -10,8 +10,8 @@ R verson can be found [here](https://github.com/haven-jeon/KoSpacing).
 
 > [!TIP]
 > **New: KoSpacing v2.** An optional LLM-based backend, `Spacing(backend='v2')`, built on
-> [kotag-0.8B](https://huggingface.co/gogamza/kotag-0.8b). It is more accurate than v1 on 3 of 4 test sets, fixes
-> spacing that is already there, and gives per-character probabilities.
+> [kotag-0.8B](https://huggingface.co/gogamza/kotag-0.8b) (`v1.3`). It is more accurate than v1 on 3 of 4 test sets, fixes
+> spacing that is already there (`fix()`), corrects Korean spelling and typing errors (`spell()`), and gives per-character probabilities.
 > **[See KoSpacing v1 and KoSpacing v2 →](#kospacing-v1-and-kospacing-v2)**
 
 
@@ -181,36 +181,83 @@ PyKoSpacing has two models.
 
 - **KoSpacing v1** (`backend='v1'`, default): the original TensorFlow model described below. Small and fast on CPU.
 - **KoSpacing v2** (`backend='v2'`, experimental): an instruction-following sequence tagger, Qwen3.5-0.8B with a
-  per-character readout, published as [gogamza/kotag-0.8b](https://huggingface.co/gogamza/kotag-0.8b). Besides spacing, it corrects spacing that is already there (`fix()`), gives per-character
-  probabilities (`space_probs()`), and spaces a list of strings as one batch. It needs no TensorFlow.
+  per-unit readout, published as [gogamza/kotag-0.8b](https://huggingface.co/gogamza/kotag-0.8b). Besides spacing, it corrects spacing that is already there (`fix()`), corrects Korean spelling and typing errors (`spell()`, `v1.3+`), gives per-character
+  probabilities (`space_probs()`), and processes a list of strings as one batch. It needs no TensorFlow.
 
 ```python
 >>> from pykospacing import Spacing
->>> spacing = Spacing(backend='v2')        # downloads gogamza/kotag-0.8b; checkpoint= takes another repo or a directory
+>>> spacing = Spacing(backend='v2')        # downloads gogamza/kotag-0.8b (v1.3); checkpoint= takes another repo or a directory
 >>> spacing('아버지가방에들어가신다')
 '아버지가 방에 들어가신다'
 >>> spacing.fix('오늘은날씨가 정말좋 네요. 산책 가실분?')       # keeps the spaces that are right
 '오늘은 날씨가 정말 좋네요. 산책 가실분?'
+>>> spacing.spell('한국어 공부를 항랑 열심히 해야 되요.')        # 3-stage detect -> candidate -> contextual select
+'한국어 공부를 항상 열심히 해야 돼요.'
 >>> spacing(['밥먹었어', '오늘날씨가좋다'])                     # batch
 >>> spacing.space_probs('아버지가방에')                          # [(char, P(space after)), ...]
 ```
 
 Install with the v2 dependencies: `pip install "pykospacing[v2] @ git+https://github.com/haven-jeon/PyKoSpacing.git"`. The model is downloaded from
-`gogamza/kotag-0.8b` on first use, or `checkpoint=` gives another repo id or a local directory. Setup, offline use and CPU/GPU notes:
+`gogamza/kotag-0.8b` ([한국어 모델 카드](https://huggingface.co/gogamza/kotag-0.8b/blob/main/README_ko.md)) on first use, or `checkpoint=` gives another repo id or a local directory. Setup, offline use, spelling options, and CPU/GPU notes:
 [docs/kospacing-v2.md](docs/kospacing-v2.md).
 
-Word F1 on the kospacing test sets, all test sentences (higher is better; KoSpacing v2 is `gogamza/kotag-0.8b` v1.2):
+Word F1 on the kospacing test sets, all test sentences (higher is better; KoSpacing v2 is `gogamza/kotag-0.8b` v1.3):
 
 | Test set | KoSpacing v1 | KoSpacing v2 |
 |---|---|---|
-| Wikipedia sentences, spaces removed | 0.824 | **0.836** |
-| KLUE-NER validation (news, reviews), spaces removed | **0.788** | 0.766 |
-| KOLD comments, spaces removed (gold is the writer's own spacing) | 0.630 | **0.690** |
-| Wikipedia with noisy spacing (15% of spaces dropped, 6% added), v2 `fix()` | 0.820 | **0.919** |
-| same, whole sentence correct | 0.264 | **0.513** |
+| Wikipedia sentences, spaces removed | 0.824 | **0.847** |
+| KLUE-NER validation (news, reviews), spaces removed | **0.788** | 0.775 |
+| KOLD comments, spaces removed (gold is the writer's own spacing) | 0.630 | **0.691** |
+| Wikipedia with noisy spacing (15% of spaces dropped, 6% added), v2 `fix()` | 0.820 | **0.924** |
+| same, whole sentence correct | 0.264 | **0.535** |
 
 On the noisy-spacing rows v1 is scored in its best mode: spaces removed, then spaced again. Passing the noisy text as
 is gives 0.730 / 0.140, because v1 trusts the existing spaces.
+
+Korean spelling correction (`spacing.spell()`, KoSpacing v2 with `gogamza/kotag-0.8b` v1.3):
+
+![KoSpacing v2 spelling correction pipeline](https://raw.githubusercontent.com/haven-jeon/PyKoSpacing/master/kospacing_v2_spell.png)
+
+*Worked example: `"아버지가방에 들어가서 사과을 깨끗히 씻었다."` → `"아버지가 방에 들어가서 사과를 깨끗이 씻었다."` (`fix_spacing=True`; real `v1.3` probabilities across optional Stage 0 → Stage 1 detect → Stage 2 CPU candidates → Stage 3 batched contextual choice).*
+
+| Benchmark | Precision | Recall | Edit F1 | Sentence exact | Clean preserved |
+|---|---|---|---|---|---|
+| Synthetic test (1,000 sentences, 1,212 errors; default `0.35 / 0.0`) | 0.747 | 0.649 | **0.695** | 0.587 | 0.881 |
+| Dev sweep safe mode (`<=5%` clean FP; `0.45 / +1.0`) | 0.806 | 0.645 | **0.717** | 0.637 | 0.967 |
+| Curated confusables & typos (45 sentences; default `0.35 / 0.0`) | 0.941 | 0.970 | **0.955** | 0.933 | 0.833 |
+| Curated confusables & typos (`0.45 / +0.5`) | 0.970 | 0.970 | **0.970** | 0.956 | 0.917 |
+| Realistic multi-error & minimal pairs (42 sentences; default `0.35 / 0.0`) | 0.857 | 0.774 | **0.814** | 0.810 | 0.895 |
+
+Pass `fix_spacing=True` to repair spacing errors before spelling correction, `detect_threshold=0.45, keep_bias=1.0` for conservative edits on technical/clean prose, or `return_edits=True` for `SpellResult` edit details (see [docs/kospacing-v2.md](docs/kospacing-v2.md)).
+
+#### What improved in `v1.3`
+
+```text
+[1] Spacing & Core Tasks (v1.2 -> v1.3)
+    v1.2 (r3o) ──▶ Clean multi-task replay (no_decay_1d, seeded sampling, cosine lr=9e-6)
+                         + Korean orthography supervision reinforcing word & particle boundaries
+                   ──▶ Wikipedia 0.847 | KLUE-NER 0.775 | fix() Exact 0.535
+
+[2] Korean Spelling Correction Progression
+    v3 baseline (Dev F1 0.628, Test 0.619, Curated 0.906)
+      └─▶ + Paper Stage 2 (Jeon, Huang & Rim, 2010: phonetic [0.42..0.64], liaison 0.55, compound split)
+          Stage 2 R@15: 88.5% -> 92.3% (dev), 88.0% -> 91.4% (test), misses -31.8%  ──▶ Zero-FT Dev F1 0.646
+      └─▶ + Stage-2-aligned v4 data (83.9% candidates refreshed + phonetic/compound/QWERTY/minimal-pair buckets)
+          ──▶ v1.3: Dev F1 0.735 (safe 0.717) | Test 0.695 | Curated 0.955 (0.970 tuned) | Realistic 0.814
+```
+
+| Improvement area | Baseline → `v1.3` | Key metric gain | Driver |
+|---|---|---|---|
+| Wikipedia word spacing | `v1.2` → `v1.3` | `0.836 → 0.847` (`+0.011`) | Multi-task replay + orthography boundary synergy |
+| Noisy spacing `fix()` | `v1.2` → `v1.3` | `0.919 / 0.513 → 0.924 / 0.535` | Same |
+| Stage 2 candidate generation | Initial → Paper Stage 2 | Test R@15 `88.0% → 91.4%` (miss `-31.8%`) | Asymmetric phonetic cost + liaison + out-of-vocabulary (OOV) compound split |
+| End-to-end `spell()` accuracy | `v3` → `v1.3` | Dev F1 `0.628 → 0.735`, Test `0.695`, Curated `0.970` | Stage-2-aligned `v4` training + targeted error/keep buckets |
+
+**`spacing.spell()` API & interactive web demo:**
+- Signature: `spacing.spell(sent, fix_spacing=False, detect_threshold=0.35, keep_bias=0.0, return_edits=False, vocab_path=None)` (`sent` can be `str` or `list[str]`).
+- Presets: default (`0.35 / 0.0`), conservative (`0.45 / +0.5`), safe (`0.45 / +1.0`, `<=5%` clean FP), spacing+spell (`fix_spacing=True`).
+- `return_edits=True` returns `SpellResult(original, corrected, edits, spacing_applied)` with `SpellEdit(word_index, original, replacement, detect_prob, select_prob, keep_prob, candidates)`.
+- Interactive web demo (`examples/demo_spell.py` in [`gogamza/kotag-0.8b`](https://huggingface.co/gogamza/kotag-0.8b)): `hf download gogamza/kotag-0.8b --revision v1.3 --local-dir kotag-0.8b && python kotag-0.8b/examples/demo_spell.py` (`http://127.0.0.1:7860`).
 
 | | KoSpacing v1 | KoSpacing v2 |
 |---|---|---|
@@ -247,9 +294,9 @@ generated token):
 
 | Approach | Latency per sentence | Generated tokens | Word F1 |
 |---|---|---|---|
-| KoSpacing v2: one forward pass, no generation | **19 ms** | 0 | **0.797** |
-| Qwen3.5-0.8B, writes the spaced sentence | 582 ms | 48 | 0.326 |
-| Qwen3.5-0.8B, writes JSON labels (`{"labels": [0, 1, ...]}`) | 6,925 ms | 422 | 0.006 (4 of 30 valid) |
+| KoSpacing v2: one forward pass, no generation | **19 ms** | 0 | **0.833** |
+| Qwen3.5-0.8B, writes the spaced sentence | 590 ms | 48 | 0.326 |
+| Qwen3.5-0.8B, writes JSON labels (`{"labels": [0, 1, ...]}`) | 6,982 ms | 422 | 0.006 (4 of 30 valid) |
 
 Generation time grows with the length of the answer, and one label per character makes it long; KoSpacing v2 reads
 every label from one forward pass.
@@ -267,7 +314,7 @@ Tests: `python -m unittest tests.test_v2`. The model tests run when `PYKOSPACING
 
 The prompt states the question and the options, then repeats the input one character per token. One forward pass of
 the Qwen3.5-0.8B backbone gives a hidden state at each repeated character; a readout over the option codes scores the
-options there (probabilities above: `gogamza/kotag-0.8b` v1.2).
+options there (probabilities above: `gogamza/kotag-0.8b` v1.3).
 
 
 #### For Training (KoSpacing v1)
@@ -284,6 +331,19 @@ title = {KoSpacing: Automatic Korean word spacing},
 publisher = {GitHub},
 journal = {GitHub repository},
 howpublished = {\url{https://github.com/haven-jeon/KoSpacing}}
+```
+
+The Hangul phonetic cost matrix, syllable-boundary liaison cost, and compound-noun split correction used in `spacing.spell()` candidate generation follow:
+
+```bibtex
+@inproceedings{jeon2010analyzing,
+  title={Analyzing of hangul search query spelling error patterns and developing query spelling correction system based on user logs},
+  author={Jeon, Hee-Won and Huang, Daniel and Rim, Hae-Chang},
+  booktitle={Annual Conference on Human and Language Technology},
+  pages={15--21},
+  year={2010},
+  organization={Human and Language Technology}
+}
 ```
 
 ### Star History

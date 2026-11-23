@@ -34,7 +34,7 @@ class Spacing:
     def __init__(self, rules=[], backend='v1', checkpoint=None, device=None, revision=None, **v2_options):
         """backend='v1' is KoSpacing v1, the original TensorFlow model. backend='v2' is KoSpacing v2, the
         instruction-following tag model (pykospacing/v2.py, docs/kospacing-v2.md): checkpoint is a local directory or a
-        Hugging Face model repo id (default gogamza/kotag-0.8b, or PYKOSPACING_V2_CHECKPOINT), revision pins the repo version (default v1.2 for that repo), device is 'cuda' or
+        Hugging Face model repo id (default gogamza/kotag-0.8b, or PYKOSPACING_V2_CHECKPOINT), revision pins the repo version (default v1.3 for that repo), device is 'cuda' or
         'cpu'; v2_options (threads, token_budget, dtype, prefix_cache) go to KoSpacingV2."""
         if backend == 'v1' and (checkpoint or device or revision or v2_options):
             raise ValueError("checkpoint, device, revision and v2 options are for backend='v2'")
@@ -94,6 +94,29 @@ class Spacing:
         self._require_v2('space_probs')
         many = not isinstance(sent, str)
         out = self._v2.space_probs(list(sent) if many else [sent])
+        return out if many else out[0]
+
+    def spell(self, sent, fix_spacing=False, detect_threshold=0.35, keep_bias=0.0,
+              return_edits=False, vocab_path=None):
+        """Correct Korean spelling and typing errors (KoSpacing v2, requires kotag-0.8B v1.3+).
+        A list of strings is processed as one batch and returns a list.
+        Set return_edits=True to receive SpellResult object(s) with edit details."""
+        self._require_v2('spell')
+        many = not isinstance(sent, str)
+        out = self._v2.spell(
+            list(sent) if many else [sent],
+            fix_spacing=fix_spacing,
+            detect_threshold=detect_threshold,
+            keep_bias=keep_bias,
+            return_edits=return_edits,
+            vocab_path=vocab_path,
+        )
+        if self.rules and fix_spacing:
+            if return_edits:
+                for r in out:
+                    r.corrected = self.apply_rules(r.corrected)
+            else:
+                out = [self.apply_rules(s) for s in out]
         return out if many else out[0]
 
     def get_spaced_sent(self, raw_sent, deleted_str_list=None, deleted_idx_list=None, orig_sent=None, post_process=False):
