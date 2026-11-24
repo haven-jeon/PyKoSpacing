@@ -34,7 +34,7 @@ class Spacing:
     def __init__(self, rules=[], backend='v1', checkpoint=None, device=None, revision=None, **v2_options):
         """backend='v1' is KoSpacing v1, the original TensorFlow model. backend='v2' is KoSpacing v2, the
         instruction-following tag model (pykospacing/v2.py, docs/kospacing-v2.md): checkpoint is a local directory or a
-        Hugging Face model repo id (default gogamza/kotag-0.8b, or PYKOSPACING_V2_CHECKPOINT), revision pins the repo version (default v1.3 for that repo), device is 'cuda' or
+        Hugging Face model repo id (default gogamza/kotag-0.8b, or PYKOSPACING_V2_CHECKPOINT), revision pins the repo version (default v1.4 for that repo), device is 'cuda' or
         'cpu'; v2_options (threads, token_budget, dtype, prefix_cache) go to KoSpacingV2."""
         if backend == 'v1' and (checkpoint or device or revision or v2_options):
             raise ValueError("checkpoint, device, revision and v2 options are for backend='v2'")
@@ -96,7 +96,7 @@ class Spacing:
         out = self._v2.space_probs(list(sent) if many else [sent])
         return out if many else out[0]
 
-    def spell(self, sent, fix_spacing=False, detect_threshold=0.35, keep_bias=0.0,
+    def spell(self, sent, fix_spacing=False, detect_threshold=0.25, keep_bias=0.0,
               return_edits=False, vocab_path=None):
         """Correct Korean spelling and typing errors (KoSpacing v2, requires kotag-0.8B v1.3+).
         A list of strings is processed as one batch and returns a list.

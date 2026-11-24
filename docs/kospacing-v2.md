@@ -30,7 +30,7 @@ pip install "pykospacing[v2] @ git+https://github.com/haven-jeon/PyKoSpacing.git
 ```python
 from pykospacing import Spacing
 
-spacing = Spacing(backend='v2')                  # gogamza/kotag-0.8b (v1.3)
+spacing = Spacing(backend='v2')                  # gogamza/kotag-0.8b (v1.4)
 spacing('아버지가방에들어가신다')                    # '아버지가 방에 들어가신다'
 spacing.fix('오늘은날씨가 정말좋 네요.')             # '오늘은 날씨가 정말 좋네요.'
 spacing.spell('한국어 공부를 항랑 열심히 해야 되요.')   # '한국어 공부를 항상 열심히 해야 돼요.'
@@ -47,7 +47,7 @@ to the Hugging Face cache; later calls load it from there.
 |---|---|---|---|
 | `backend='v2'` | | `'v1'` | Selects KoSpacing v2 |
 | `checkpoint` | `PYKOSPACING_V2_CHECKPOINT` | `gogamza/kotag-0.8b` | Hugging Face repo id, or a local checkpoint directory |
-| `revision` | `PYKOSPACING_V2_REVISION` | `v1.3` for `gogamza/kotag-0.8b`, latest on `main` for other repos | Repo branch, tag or commit to use |
+| `revision` | `PYKOSPACING_V2_REVISION` | `v1.4` for `gogamza/kotag-0.8b`, latest on `main` for other repos | Repo branch, tag or commit to use |
 | `device` | `PYKOSPACING_V2_DEVICE` | `'cuda'` if available, else `'cpu'` | Where the model runs |
 | `threads` | | torch default | CPU threads (CPU only) |
 | `token_budget` | | 32768 | Padded tokens per forward pass; lower it if the GPU runs out of memory |
@@ -59,7 +59,7 @@ Arguments take precedence over environment variables. A value that starts with `
 path; a missing directory raises `FileNotFoundError` instead of trying the Hub.
 
 The default model is pinned: each PyKoSpacing version loads the kotag-0.8B release it was tested with
-(`DEFAULT_REVISION` in `pykospacing/v2.py`, now `v1.3`), so a new upload to the repo does not change your results.
+(`DEFAULT_REVISION` in `pykospacing/v2.py`, now `v1.4`), so a new upload to the repo does not change your results.
 Pass `revision='main'` to try the newest upload, or pin a revision yourself when you use another repo:
 
 ```python
@@ -87,12 +87,14 @@ Stage 2 CPU candidate generation (`pykospacing/spell_candidates.py` + `spell_voc
 and Stage 3 contextual candidate selection (`spell_select`). Note that spacing-only users never load the spell
 vocabulary unless `spell()` is called.
 
+![KoSpacing v2 shared readout architecture: Stage 1 spell_detect (tag) and Stage 3 spell_select (choose)](../kospacing_v2_readout.png)
+
 ```python
-# Default (balanced): detect_threshold=0.35, keep_bias=0.0
+# Default (balanced): detect_threshold=0.25, keep_bias=0.0
 spacing.spell('한국어 공부를 항랑 열심히 해야 되요.')
 
 # Conservative (minimizes false edits on clean/technical text)
-spacing.spell('엔비디아 GPU에서 파이토치 모델을 테스트했다.', detect_threshold=0.45, keep_bias=1.0)
+spacing.spell('엔비디아 GPU에서 파이토치 모델을 테스트했다.', detect_threshold=0.35, keep_bias=0.5)
 
 # Repair spacing errors first (Stage 0), then spelling errors
 spacing.spell('지금집에 가도 되요.', fix_spacing=True)
@@ -108,25 +110,26 @@ res = spacing.spell('팀장님께 결제 서류를 올렸다.', return_edits=Tru
 |---|---|---|
 | `sent` | required | `str` or `list[str]` (batched automatically; multiline `\n` and long text >400 chars supported) |
 | `fix_spacing` | `False` | Run Stage 0 `fix()` before spelling detection and correction |
-| `detect_threshold` | `0.35` | Minimum Stage 1 error probability `P(1)` required to inspect candidates for an eojeol |
+| `detect_threshold` | `0.25` | Minimum Stage 1 error probability `P(1)` required to inspect candidates for an eojeol |
 | `keep_bias` | `0.0` | Log-probability bonus added to keeping the original eojeol in Stage 3 (higher = more conservative) |
 | `return_edits` | `False` | Return `SpellResult(original, corrected, edits, spacing_applied)` instead of plain string(s) |
 | `vocab_path` | `None` | Custom path to `spell_vocab.json.gz` (by default loaded lazily from the checkpoint directory) |
 
 | Preset | `detect_threshold` | `keep_bias` | Notes |
 |---|---|---|---|
-| Balanced (default) | `0.35` | `0.0` | Highest F1 across general Korean text |
-| Low false-positive | `0.45` | `0.5` | Strong balance with reduced false edits (`0.970` F1 on curated pairs) |
-| Safe (`<=5%` clean FP) | `0.45` | `1.0` | Recommended for technical/clean prose and proper nouns |
+| Balanced (default) | `0.25` | `0.0` | Balanced accuracy & clean preservation across general Korean text |
+| Balanced-conservative | `0.35` | `0.0` | Fewer false edits (`97.7%` test clean preserved) |
+| Safe (`<=2%` test clean FP) | `0.35` | `0.5` | Recommended for technical/clean prose and proper nouns (`98.1%` clean) |
+| Ultra-conservative | `0.45` | `1.0` | Minimal edits (`>=98%` test clean preserved; lower recall) |
 
 When `return_edits=True`, each entry in `res.edits` is a `SpellEdit(word_index, original, replacement, detect_prob, select_prob, keep_prob, candidates)`.
 
 #### Interactive spell checker web demo
 
-`gogamza/kotag-0.8b` (`v1.3`) includes a standalone web demo (`examples/demo_spell.py`) showing Stage 0~3 diagnostics, sliders, and candidate probability cards:
+`gogamza/kotag-0.8b` (`v1.4`) includes a standalone web demo (`examples/demo_spell.py`) showing Stage 0~3 diagnostics, sliders, and candidate probability cards:
 
 ```bash
-hf download gogamza/kotag-0.8b --revision v1.3 --local-dir ./kotag-0.8b
+hf download gogamza/kotag-0.8b --revision v1.4 --local-dir ./kotag-0.8b
 python ./kotag-0.8b/examples/demo_spell.py            # open http://127.0.0.1:7860 (add --device cpu without GPU)
 ```
 
@@ -137,7 +140,7 @@ Pass `vocab_path=...` if using an earlier checkpoint or a custom vocabulary arch
 Download once, then load from the directory:
 
 ```bash
-hf download gogamza/kotag-0.8b --revision v1.3 --local-dir ./kotag-0.8b
+hf download gogamza/kotag-0.8b --revision v1.4 --local-dir ./kotag-0.8b
 ```
 
 ```python
