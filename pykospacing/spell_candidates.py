@@ -39,6 +39,7 @@ PURE_HANGUL_WORD = re.compile(r"[가-힣]+")
 PURE_ASCII_ALPHA = re.compile(r"[A-Za-z]+")
 ASCII_ALPHA_RE = re.compile(r"[A-Za-z]")
 HANGUL_JAMO_RE = re.compile(r"[ㄱ-ㅎㅏ-ㅣ]")
+_OTHER_SCRIPT_RE = re.compile(r"[\u3040-\u30FF\u4E00-\u9FFF\u0400-\u04FF\u0370-\u03FF]")
 
 # Unified 2-beolsik Korean + QWERTY English / digit physical keyboard layout (row, staggered col)
 _HANGUL_KEY_POS: dict[str, tuple[float, float]] = {
@@ -765,17 +766,17 @@ class SpellCandidateGenerator:
             right = word[cut:]
             lfreq = max(self.word_freq.get(left, 0), self.stem_freq.get(left, 0))
             rfreq = max(self.word_freq.get(right, 0), self.stem_freq.get(right, 0))
-            if lfreq >= 10:
+            if lfreq >= 50:
                 for cand_r, cr_freq in side_fixes(right, allow_josa=True):
                     cand = left + cand_r
-                    if cand != word:
+                    if cand != word and cr_freq >= 15 and max(lfreq, cr_freq) >= 100:
                         mfreq = min(lfreq, cr_freq)
                         if mfreq > best.get(cand, -1):
                             best[cand] = mfreq
-            if rfreq >= 10:
+            if rfreq >= 50:
                 for cand_l, cl_freq in side_fixes(left, allow_josa=False):
                     cand = cand_l + right
-                    if cand != word:
+                    if cand != word and cl_freq >= 15 and max(cl_freq, rfreq) >= 100:
                         mfreq = min(cl_freq, rfreq)
                         if mfreq > best.get(cand, -1):
                             best[cand] = mfreq
@@ -832,6 +833,13 @@ class SpellCandidateGenerator:
         def search_hangul_core(target_core: str, base_jamo: str, *, allow_stem_split: bool = True) -> None:
             target_jamo = decompose(target_core)
             for c in fix_josa_candidates(target_core):
+                if self.word_freq.get(target_core, 0) >= 20 and self.word_freq.get(c, 0) == 0:
+                    pref_len = 0
+                    while pref_len < len(target_core) and pref_len < len(c) and target_core[pref_len] == c[pref_len]:
+                        pref_len += 1
+                    josa_stem = target_core[:pref_len]
+                    if self.word_freq.get(josa_stem, 0) < 5:
+                        continue
                 if (
                     target_core.endswith("로")
                     and c == target_core[:-1] + "으로"
@@ -965,7 +973,10 @@ class SpellCandidateGenerator:
                         register(combined, rule_bonus=0.0, stem_penalty=0.10, freq_override=in_wf)
                     elif is_ascii_alnum_stem:
                         register(combined, rule_bonus=0.0, stem_penalty=0.35, freq_override=20)
-                    elif (len(suf) >= 2 and ed <= 1.65) or (len(suf) == 1 and ed <= 1.15):
+                    elif (
+                        not (self.word_freq.get(core, 0) >= 20 and self.word_freq.get(stem, 0) < 5)
+                        and ((len(suf) >= 2 and ed <= 1.65) or (len(suf) == 1 and ed <= 1.15))
+                    ):
                         register(combined, rule_bonus=0.0, stem_penalty=0.85, freq_override=min(stem_freq_val, 30))
 
         # 5. Inner-punctuation words: recover trailing suffix or misspelled Hangul segments
@@ -1025,9 +1036,12 @@ class SpellCandidateGenerator:
             for cand, cfreq in self._compound_split_candidates(core):
                 register(cand, rule_bonus=0.0, stem_penalty=0.30, freq_override=cfreq)
 
+        orig_other = _OTHER_SCRIPT_RE.findall(core)
         ranked: list[tuple[float, str]] = []
         for cand_core, (bonus, spen, freq, base_jamo) in scored.items():
             if cand_core == core:
+                continue
+            if orig_other and _OTHER_SCRIPT_RE.findall(cand_core) != orig_other:
                 continue
             cand_jamo = cand_core if cand_core.isascii() else decompose(cand_core)
             ed = jamo_edit_distance(base_jamo, cand_jamo)
@@ -1144,4 +1158,12 @@ def _self_test() -> None:
     assert "학생이다" in gen.generate("학생다", max_candidates=10), gen.generate("학생다")
     assert "도움이" in gen.generate("고움가", max_candidates=10), gen.generate("고움가")
     assert "220PPI를" in gen.generate("220PPI럴", max_candidates=10), gen.generate("220PPI럴")
+    # Structural v6 checks: foreign-script preservation & tight 2+2 OOV compound threshold
+    gen_oov = SpellCandidateGenerator(
+        {**mini_words, "뒤에": 500, "파르": 33, "멜린": 48},
+        mini_stems,
+        eng_freq=mini_eng,
+    )
+    assert gen_oov.generate("です뒤에", max_candidates=10) == ["です뒤에"], gen_oov.generate("です뒤에")
+    assert "파르멜린" not in gen_oov.generate("파르멜랭", max_candidates=10), gen_oov.generate("파르멜랭")
     print("spell_candidates self-test passed:", c1[:3], c_q1[:2], c_bd[:2], gen.generate("Pytoch", max_candidates=3))
