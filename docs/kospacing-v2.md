@@ -30,7 +30,7 @@ pip install "pykospacing[v2] @ git+https://github.com/haven-jeon/PyKoSpacing.git
 ```python
 from pykospacing import Spacing
 
-spacing = Spacing(backend='v2')                  # gogamza/kotag-0.8b (v1.5)
+spacing = Spacing(backend='v2')                  # gogamza/kotag-0.8b (v1.6)
 spacing('아버지가방에들어가신다')                    # '아버지가 방에 들어가신다'
 spacing.fix('오늘은날씨가 정말좋 네요.')             # '오늘은 날씨가 정말 좋네요.'
 spacing.spell('한국어 공부를 항랑 열심히 해야 되요.')   # '한국어 공부를 항상 열심히 해야 돼요.'
@@ -38,7 +38,7 @@ spacing(['밥먹었어', '오늘날씨가좋다'])               # a list is spa
 spacing.space_probs('아버지가방에')                 # [('아', 0.0), ..., ('가', 0.89), ...]
 ```
 
-The first call downloads `gogamza/kotag-0.8b` (about 1.7 GB, plus `spell_vocab.json.gz` 3.4 MB for spelling candidates)
+The first call downloads `gogamza/kotag-0.8b` (about 1.7 GB, plus `spell_vocab.json.gz` 4.5 MB for spelling candidates)
 to the Hugging Face cache; later calls load it from there.
 
 ## 3. Options
@@ -47,7 +47,7 @@ to the Hugging Face cache; later calls load it from there.
 |---|---|---|---|
 | `backend='v2'` | | `'v1'` | Selects KoSpacing v2 |
 | `checkpoint` | `PYKOSPACING_V2_CHECKPOINT` | `gogamza/kotag-0.8b` | Hugging Face repo id, or a local checkpoint directory |
-| `revision` | `PYKOSPACING_V2_REVISION` | `v1.5` for `gogamza/kotag-0.8b`, latest on `main` for other repos | Repo branch, tag or commit to use |
+| `revision` | `PYKOSPACING_V2_REVISION` | `v1.6` for `gogamza/kotag-0.8b`, latest on `main` for other repos | Repo branch, tag or commit to use |
 | `device` | `PYKOSPACING_V2_DEVICE` | `'cuda'` if available, else `'cpu'` | Where the model runs |
 | `threads` | | torch default | CPU threads (CPU only) |
 | `token_budget` | | 32768 | Padded tokens per forward pass; lower it if the GPU runs out of memory |
@@ -59,7 +59,7 @@ Arguments take precedence over environment variables. A value that starts with `
 path; a missing directory raises `FileNotFoundError` instead of trying the Hub.
 
 The default model is pinned: each PyKoSpacing version loads the kotag-0.8B release it was tested with
-(`DEFAULT_REVISION` in `pykospacing/v2.py`, now `v1.5`), so a new upload to the repo does not change your results.
+(`DEFAULT_REVISION` in `pykospacing/v2.py`, now `v1.6`), so a new upload to the repo does not change your results.
 Pass `revision='main'` to try the newest upload, or pin a revision yourself when you use another repo:
 
 ```python
@@ -117,19 +117,19 @@ res = spacing.spell('팀장님께 결제 서류를 올렸다.', return_edits=Tru
 
 | Preset | `detect_threshold` | `keep_bias` | Notes |
 |---|---|---|---|
-| Balanced (default) | `0.25` | `0.0` | Balanced accuracy & clean preservation across general Korean text (**98.1%** test clean preserved) |
+| Balanced (default) | `0.25` | `0.0` | Balanced accuracy & clean preservation across general Korean text (**98.5%** test clean preserved) |
 | Balanced-conservative | `0.35` | `0.0` | Fewer false edits (**98.8%** test clean preserved) |
-| Safe (`<=1%` test clean FP) | `0.35` | `0.5` | Recommended for technical/clean prose and proper nouns (**99.6%** test clean preserved, 1/260 FP) |
-| Ultra-conservative | `0.45` | `1.0` | Minimal edits (stricter than Safe 99.6%; lower recall) |
+| Safe (`<=1%` test clean FP) | `0.35` | `0.5` | Recommended for technical/clean prose and proper nouns (**99.2%** test clean preserved, 2/260 FP) |
+| Ultra-conservative | `0.45` | `1.0` | Minimal edits (stricter than Safe 99.2%; lower recall) |
 
 When `return_edits=True`, each entry in `res.edits` is a `SpellEdit(word_index, original, replacement, detect_prob, select_prob, keep_prob, candidates)`.
 
 #### Interactive spell checker web demos
 
-`gogamza/kotag-0.8b` (`v1.5`) includes standalone web demos: `examples/demo_spell.py` (Stage 0~3 diagnostics, sliders, and candidate probability cards on `:7860`) and `examples/demo_writer.py` (word-processor style async spell & spacing UI on `:7870`):
+`gogamza/kotag-0.8b` (`v1.6`) includes standalone web demos: `examples/demo_spell.py` (Stage 0~3 diagnostics, sliders, and candidate probability cards on `:7860`) and `examples/demo_writer.py` (word-processor style async spell & spacing UI on `:7870`):
 
 ```bash
-hf download gogamza/kotag-0.8b --revision v1.5 --local-dir ./kotag-0.8b
+hf download gogamza/kotag-0.8b --revision v1.6 --local-dir ./kotag-0.8b
 python ./kotag-0.8b/examples/demo_spell.py            # open http://127.0.0.1:7860 (add --device cpu without GPU)
 python ./kotag-0.8b/examples/demo_writer.py           # open http://127.0.0.1:7870
 ```
@@ -141,7 +141,7 @@ Pass `vocab_path=...` if using an earlier checkpoint or a custom vocabulary arch
 Download once, then load from the directory:
 
 ```bash
-hf download gogamza/kotag-0.8b --revision v1.5 --local-dir ./kotag-0.8b
+hf download gogamza/kotag-0.8b --revision v1.6 --local-dir ./kotag-0.8b
 ```
 
 ```python

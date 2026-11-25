@@ -179,7 +179,7 @@ Examples of `ignore` parameter
 
 PyKoSpacing supports two backends:
 - **KoSpacing v1** (`backend='v1'`, default): the original 2.4 MB TensorFlow CNN/BiGRU model, fast on CPU.
-- **KoSpacing v2** (`backend='v2'`): [gogamza/kotag-0.8b](https://huggingface.co/gogamza/kotag-0.8b) (`v1.5`, Qwen3.5-0.8B with a shared 255-option readout, PyTorch, no TensorFlow). Adds valid-space-preserving `fix()`, 3-stage Korean spelling correction (`spell()`, `v1.3+`), per-character `space_probs()`, and list batching.
+- **KoSpacing v2** (`backend='v2'`): [gogamza/kotag-0.8b](https://huggingface.co/gogamza/kotag-0.8b) (`v1.6`, Qwen3.5-0.8B with a shared 255-option readout, PyTorch, no TensorFlow). Adds valid-space-preserving `fix()`, 3-stage Korean spelling correction (`spell()`, `v1.3+`), per-character `space_probs()`, and list batching.
 
 ```bash
 pip install "pykospacing[v2] @ git+https://github.com/haven-jeon/PyKoSpacing.git"
@@ -187,7 +187,7 @@ pip install "pykospacing[v2] @ git+https://github.com/haven-jeon/PyKoSpacing.git
 
 ```python
 >>> from pykospacing import Spacing
->>> spacing = Spacing(backend='v2')        # downloads gogamza/kotag-0.8b (v1.5)
+>>> spacing = Spacing(backend='v2')        # downloads gogamza/kotag-0.8b (v1.6)
 >>> spacing('아버지가방에들어가신다')
 '아버지가 방에 들어가신다'
 >>> spacing.fix('오늘은날씨가 정말좋 네요. 산책 가실분?')       # keeps valid spaces
@@ -200,19 +200,19 @@ pip install "pykospacing[v2] @ git+https://github.com/haven-jeon/PyKoSpacing.git
 
 Setup, offline mode, spelling presets, and CPU/GPU notes: [docs/kospacing-v2.md](docs/kospacing-v2.md) · [한국어 모델 카드](https://huggingface.co/gogamza/kotag-0.8b/blob/main/README_ko.md).
 
-**Word spacing (Word F1, all test sentences; `v1.5`):**
+**Word spacing (Word F1, all test sentences; `v1.6`):**
 
 | Test set | KoSpacing v1 | KoSpacing v2 |
 |---|---|---|
 | Wikipedia, spaces removed | 0.824 | **0.849** |
-| KLUE-NER validation (news, reviews), spaces removed | **0.788** | 0.774 |
-| KOLD comments, spaces removed (writer's gold spacing) | 0.630 | **0.693** |
-| Wikipedia noisy spacing (15% dropped, 6% added), v2 `fix()` | 0.820 | **0.921** |
-| same, whole sentence exact | 0.264 | **0.522** |
+| KLUE-NER validation (news, reviews), spaces removed | **0.788** | 0.776 |
+| KOLD comments, spaces removed (writer's gold spacing) | 0.630 | **0.695** |
+| Wikipedia noisy spacing (15% dropped, 6% added), v2 `fix()` | 0.820 | **0.917** |
+| same, whole sentence exact | 0.264 | **0.504** |
 
 *On noisy spacing, v1 is scored in its best mode (spaces removed then re-spaced; raw `as-is` gives `0.730 / 0.140`).*
 
-**Korean spelling correction (`spacing.spell()`, `gogamza/kotag-0.8b` v1.5):**
+**Korean spelling correction (`spacing.spell()`, `gogamza/kotag-0.8b` v1.6):**
 
 ![KoSpacing v2 spelling correction pipeline](https://raw.githubusercontent.com/haven-jeon/PyKoSpacing/master/kospacing_v2_spell.png)
 
@@ -220,12 +220,12 @@ Setup, offline mode, spelling presets, and CPU/GPU notes: [docs/kospacing-v2.md]
 
 | Benchmark | Precision | Recall | Edit F1 | Sentence exact | Clean preserved |
 |---|---|---|---|---|---|
-| Synthetic test (`1,000` sents, `1,212` errors; default `0.25 / 0.0`) | 0.840 | 0.626 | **0.717** | 0.612 | 98.1% |
-| Synthetic test (`1,000` sents; safe `0.35 / +0.5`) | 0.854 | 0.603 | **0.707** | 0.597 | **99.6%** |
-| Curated confusables & typos (`45` sents; default `0.25 / 0.0`) | 0.939 | 0.939 | **0.939** | 0.933 | 91.7% |
-| Realistic multi-error & minimal pairs (`42` sents; default `0.25 / 0.0`) | 0.900 | 0.871 | **0.885** | 0.881 | 89.5% |
+| Synthetic test (`1,000` sents, `1,212` errors; default `0.25 / 0.0`) | 0.843 | 0.631 | **0.722** | 0.613 | 98.5% |
+| Synthetic test (`1,000` sents; safe `0.35 / +0.5`) | 0.854 | 0.608 | **0.710** | 0.599 | **99.2%** |
+| Curated confusables & typos (`45` sents; default `0.25 / 0.0`) | 0.941 | 0.970 | **0.955** | 0.956 | 91.7% |
+| Realistic multi-error & minimal pairs (`42` sents; default `0.25 / 0.0`) | 0.929 | 0.839 | **0.881** | 0.881 | 94.7% |
 
-*`v1.5` highlights (`r3t-spell-v6b-s50` + `vocab_v6` + tightened `spell_candidates.py`, zero heuristic guards): Wikipedia spacing **0.849**, test precision **0.803 → 0.840**, edit F1 **0.699 → 0.717**, clean preservation **96.2% → 98.1%** (5/260 FP; safe **99.6%**, 1/260 FP), and **65–75%** fewer total FPs across 386 unseen live web sentences in `fix_spacing=True` mode. See [docs/kospacing-v2.md](docs/kospacing-v2.md) for `spell()` presets, `return_edits=True`, offline use, and the web demos (`examples/demo_spell.py`, `examples/demo_writer.py`).*
+*`v1.6` highlights (`r3t-spell-v8-s35` + `vocab_v7` + expanded directional/productive `spell_candidates.py`, zero heuristic guards): Wikipedia spacing **0.849**, test precision **0.843**, edit F1 **0.722** (clean **98.5%**, 4/260 FP; safe **99.2%**, 2/260 FP), curated **0.955**, leak-free external `vitruv_val_pure` (380 sents) F1 **0.756 → 0.907** (`42.9% → 69.5%` exact), and **-37.0%** fewer edits across 5 formal domains (`1.80 → 1.14/1k`; safe `0.73/1k`). See [docs/kospacing-v2.md](docs/kospacing-v2.md) for `spell()` presets, `return_edits=True`, offline use, and the web demos (`examples/demo_spell.py`, `examples/demo_writer.py`).*
 
 **Speed & vs generative decoding (NVIDIA GB10, 20-core Arm CPU / GPU, `1.7 GB` weights in PyTorch):**
 

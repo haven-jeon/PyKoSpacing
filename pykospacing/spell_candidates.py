@@ -420,6 +420,31 @@ CONFUSABLE_SUBSTRING_RULES: list[tuple[str, str]] = [
     ("오래간만", "오랫간만"), ("오랫간만", "오래간만"),
 ]
 
+# Directional typo -> standard rules (never used in reverse for candidate generation)
+DIRECTIONAL_CONFUSABLE_RULES: list[tuple[str, str]] = [
+    ("됀다", "된다"),
+    ("됀", "된"),
+    ("컨텐츠", "콘텐츠"),
+    ("어짜피", "어차피"),
+    ("몃몃", "몇몇"),
+    ("몃", "몇"),
+    ("몆", "몇"),
+    ("딲", "딱"),
+    ("갠적", "개인적"),
+    ("왠만", "웬만"),
+    ("해깔", "헷갈"),
+    ("희안", "희한"),
+    ("괜차늘", "괜찮을"),
+    ("괜찬", "괜찮"),
+    ("바래요", "바라요"),
+    ("더라구", "더라고"),
+]
+_EXACT_DIRECTIONAL_CONFUSABLE: dict[str, str] = {
+    "남여": "남녀",
+}
+_PAST_FUT_ENDINGS = frozenset("다던지고는어으기을나니면네")
+_DO_STEM_CHARS = frozenset("해봐와가되돼써줘놔둬라")
+
 # Post-position (josa) pairs: (with_batchim, without_batchim)
 JOSA_PAIRS: list[tuple[str, str]] = [
     ("이", "가"),
@@ -533,6 +558,13 @@ def confusable_candidates(core: str) -> list[str]:
     if not HANGUL_SYLLABLE.search(core):
         return []
     out: list[str] = []
+    if core in _EXACT_DIRECTIONAL_CONFUSABLE:
+        out.append(_EXACT_DIRECTIONAL_CONFUSABLE[core])
+    for src, dst in DIRECTIONAL_CONFUSABLE_RULES:
+        if src in core:
+            cand = core.replace(src, dst)
+            if cand != core:
+                out.append(cand)
     for src, dst in CONFUSABLE_SUBSTRING_RULES:
         if src in core:
             cand = core.replace(src, dst)
@@ -545,6 +577,16 @@ def confusable_candidates(core: str) -> list[str]:
             expected = "율" if prev_jong in ("", "ㄴ") else "률"
             if ch != expected:
                 out.append(core[:i] + expected + core[i + 1:])
+    # Productive colloquial-to-standard candidate rules: 햇->했, 겟->겠, -구->-고, -두->-도
+    for i, ch in enumerate(core):
+        if i >= 1 and ch in ("햇", "겟") and i + 1 < len(core) and core[i + 1] in _PAST_FUT_ENDINGS:
+            std = "했" if ch == "햇" else "겠"
+            out.append(core[:i] + std + core[i + 1:])
+    if len(core) >= 3 and PURE_HANGUL_WORD.fullmatch(core):
+        if core.endswith("구"):
+            out.append(core[:-1] + "고")
+        elif core.endswith("두") and core[-2] in _DO_STEM_CHARS:
+            out.append(core[:-1] + "도")
     return list(dict.fromkeys(out))
 
 
@@ -1166,4 +1208,19 @@ def _self_test() -> None:
     )
     assert gen_oov.generate("です뒤에", max_candidates=10) == ["です뒤에"], gen_oov.generate("です뒤에")
     assert "파르멜린" not in gen_oov.generate("파르멜랭", max_candidates=10), gen_oov.generate("파르멜랭")
+    # P0/P1 directional confusables & productive colloquial candidates
+    assert "된다." in confusable_candidates("됀다.")
+    assert "된" in confusable_candidates("됀")
+    assert "됀" not in confusable_candidates("된")
+    assert "남녀" in confusable_candidates("남여")
+    assert "희한한" in confusable_candidates("희안한")
+    assert "야속했다." in confusable_candidates("야속햇다.")
+    assert "망했지만" in confusable_candidates("망햇지만")
+    assert "좋겠다." in confusable_candidates("좋겟다.")
+    assert "움츠러들고" in confusable_candidates("움츠러들구")
+    assert "들춰봐도" in confusable_candidates("들춰봐두")
+    assert "몇몇" in confusable_candidates("몃몃")
+    assert "개인적으로" in confusable_candidates("갠적으로")
+    assert "웬만한" in confusable_candidates("왠만한")
+    assert "괜찮을까요" in confusable_candidates("괜차늘까요")
     print("spell_candidates self-test passed:", c1[:3], c_q1[:2], c_bd[:2], gen.generate("Pytoch", max_candidates=3))
